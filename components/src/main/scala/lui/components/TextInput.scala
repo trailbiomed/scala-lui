@@ -67,6 +67,13 @@ object TextInput extends ComponentFactory[TextInput] {
           css.background(if (d) t.surfaceDim else t.surface) ++
           css.textAlign(alignVal) ++
           css.raw("font-family", "inherit") ++
+          // Native <input> elements get their own UA-default font
+          // rendering that ignores the body's font-smoothing
+          // inheritance on macOS Retina — explicitly apply
+          // antialiased smoothing here so the text isn't visually
+          // lighter than the surrounding chrome.
+          css.raw("-webkit-font-smoothing", "antialiased") ++
+          css.raw("-moz-osx-font-smoothing", "grayscale") ++
           css.raw("outline", "none") ++
           css.raw("box-shadow", shadow) ++
           css.transition("border-color", 150) ++
