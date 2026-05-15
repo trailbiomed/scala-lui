@@ -18,6 +18,7 @@ final class TextInput private[components] (val root: HtmlElement) extends Compon
   private[components] val variantVar: Var[TextInput.Variant] = Var(TextInput.Variant.Text)
   private[components] val alignVar: Var[TextAlign] = Var(TextAlign.Left)
   private[components] val widthVar: Var[Length] = Var(Length.auto)
+  private[components] val fontSizeVar: Var[Length] = Var(fontSizes.xl)
   private[components] val focused: Var[Boolean] = Var(false)
 }
 
@@ -33,6 +34,7 @@ object TextInput extends ComponentFactory[TextInput] {
   val variant = Prop.in[Variant, TextInput](_.variantVar)
   val align = Prop.in[TextAlign, TextInput](_.alignVar)
   val width = Prop.in[Length, TextInput](_.widthVar)
+  val fontSize = Prop.in[Length, TextInput](_.fontSizeVar)
 
   override protected def build: TextInput = {
     val root = input()
@@ -43,11 +45,12 @@ object TextInput extends ComponentFactory[TextInput] {
       el.invalidVar.signal,
       el.alignVar.signal,
       el.widthVar.signal,
-      el.disabledVar.signal
+      el.disabledVar.signal,
+      el.fontSizeVar.signal,
     )
 
     root.amend(
-      state.styled { case (t, (focusedOn, invalidOn, alignVal, w, d)) =>
+      state.styled { case (t, (focusedOn, invalidOn, alignVal, w, d, fs)) =>
         val (bd, shadow) =
           if (invalidOn)
             (t.danger, s"0 0 0 3px ${t.danger.alpha(0.18).toCss}")
@@ -56,9 +59,10 @@ object TextInput extends ComponentFactory[TextInput] {
           else (t.border, "none")
         css.width(w) ++
           css.padding(Length.px(7), Length.px(10)) ++
-          css.border(Length.px(1.5), BorderStyle.Solid, bd) ++
+          css.border(Length.px(1), BorderStyle.Solid, bd) ++
           css.borderRadius(radius.md) ++
-          css.fontSize(Length.px(16)) ++
+          css.fontSize(fs) ++
+          css.fontWeight(FontWeight.Regular) ++
           css.color(t.text) ++
           css.background(if (d) t.surfaceDim else t.surface) ++
           css.textAlign(alignVal) ++
