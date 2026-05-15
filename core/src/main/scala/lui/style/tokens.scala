@@ -14,7 +14,9 @@ object palette {
   val teal700: Color = Color.hex("#0f766e")
   val teal900: Color = Color.hex("#134e4a")
 
-  // Neutrals (slate)
+  // Neutrals (slate — kept for data-encoding / status use cases
+  // that want a cool blue-gray; the Theme uses the warmer `neutral`
+  // scale below for chrome).
   val white: Color = Color.hex("#ffffff")
   val slate50: Color = Color.hex("#f8fafc")
   val slate100: Color = Color.hex("#f1f5f9")
@@ -26,6 +28,21 @@ object palette {
   val slate700: Color = Color.hex("#334155")
   val slate800: Color = Color.hex("#1e293b")
   val slate900: Color = Color.hex("#0f172a")
+
+  // Neutrals (zinc/gray — Chakra v3's default `gray` palette,
+  // visually neutral with no blue undertone). The Theme uses these
+  // for surface / border / text by default.
+  val neutral50: Color  = Color.hex("#fafafa")
+  val neutral100: Color = Color.hex("#f4f4f5")
+  val neutral200: Color = Color.hex("#e4e4e7")
+  val neutral300: Color = Color.hex("#d4d4d8")
+  val neutral400: Color = Color.hex("#a1a1aa")
+  val neutral500: Color = Color.hex("#71717a")
+  val neutral600: Color = Color.hex("#52525b")
+  val neutral700: Color = Color.hex("#3f3f46")
+  val neutral800: Color = Color.hex("#27272a")
+  val neutral900: Color = Color.hex("#18181b")
+  val neutral950: Color = Color.hex("#111111")
 
   // Semantic — emerald (success)
   val emerald50: Color = Color.hex("#ecfdf5")
