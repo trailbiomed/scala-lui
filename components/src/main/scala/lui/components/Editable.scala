@@ -27,30 +27,7 @@ object Editable extends ComponentFactory[Editable] {
 
   enum Variant { case Body, Heading }
 
-  /** `value` synchronously samples its source at amend time when the
-    * source is a `StrictSignal` (i.e. a `Var#signal` or any signal
-    * whose current value is readable without an Owner). This avoids
-    * a flash of the placeholder before the source's first emission
-    * reaches the internal `valueVar`: by the time the preview reads
-    * `valueVar`, it already holds the source's current value.
-    *
-    * For non-Strict sources (e.g. a `Signal.fromValue(...)` literal)
-    * the sample is a no-op and behavior falls back to the normal
-    * subscription-based propagation. */
-  val value: InOut[String, Editable] = new InOut[String, Editable](
-    bindIn = (el, src) => {
-      src match {
-        case sig: com.raquo.airstream.state.StrictSignal[String @unchecked] =>
-          el.valueVar.writer.onNext(sig.now())
-        case _ => ()
-      }
-      val _ = el.root.amend(src.toObservable --> el.valueVar.writer)
-    },
-    bindOut = (el, sink) => {
-      val _ = el.root.amend(el.valueVar.signal.changes.distinct --> sink)
-    },
-  )
-
+  val value = Prop.inOut[String, Editable](_.valueVar)
   val placeholder = Prop.in[String, Editable](_.placeholderVar)
   val editing = Prop.inOut[Boolean, Editable](_.editingVar)
   val variant = Prop.in[Variant, Editable](_.variantVar)
