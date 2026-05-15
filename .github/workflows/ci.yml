@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # sbt-dynver needs tags
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: sbt
+
+      - uses: sbt/setup-sbt@v1
+
+      - name: Compile core + components
+        run: sbt -J-Xmx3g "core/compile" "components/compile"
+
+      - name: Compile demo (sanity check)
+        run: sbt -J-Xmx3g "example/fastLinkJS" "devserver/compile"
