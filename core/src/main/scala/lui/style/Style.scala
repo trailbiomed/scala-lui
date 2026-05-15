@@ -73,17 +73,26 @@ object css {
   def border(w: Length, st: BorderStyle, c: Color): Style =
     one("border", s"${w.toCss} ${st.toCss} ${c.toCss}")
   def borderRadius(r: Length): Style = one("border-radius", r.toCss)
+  def borderTop(w: Length, st: BorderStyle, c: Color): Style =
+    one("border-top", s"${w.toCss} ${st.toCss} ${c.toCss}")
+  def borderRight(w: Length, st: BorderStyle, c: Color): Style =
+    one("border-right", s"${w.toCss} ${st.toCss} ${c.toCss}")
   def borderBottom(w: Length, st: BorderStyle, c: Color): Style =
     one("border-bottom", s"${w.toCss} ${st.toCss} ${c.toCss}")
+  def borderLeft(w: Length, st: BorderStyle, c: Color): Style =
+    one("border-left", s"${w.toCss} ${st.toCss} ${c.toCss}")
 
   // Typography
   def fontSize(l: Length): Style = one("font-size", l.toCss)
   def fontWeight(w: FontWeight): Style = one("font-weight", w.toCss)
+  def fontStyle(v: String): Style = one("font-style", v)
   def letterSpacing(l: Length): Style = one("letter-spacing", l.toCss)
   def textTransform(v: String): Style = one("text-transform", v)
   def textAlign(v: TextAlign): Style = one("text-align", v.toCss)
+  def textOverflow(v: String): Style = one("text-overflow", v)
   def lineHeight(v: Double): Style = one("line-height", v.toString)
   def whiteSpace(v: String): Style = one("white-space", v)
+  def userSelect(v: String): Style = one("user-select", v)
 
   // Flex / layout
   def display(d: Display): Style = one("display", d.toCss)
@@ -93,6 +102,8 @@ object css {
   def flexWrap(v: String): Style = one("flex-wrap", v)
   def flexShrink(v: Int): Style = one("flex-shrink", v.toString)
   def flexGrow(v: Int): Style = one("flex-grow", v.toString)
+  def flex(grow: Int, shrink: Int, basis: Length): Style =
+    one("flex", s"$grow $shrink ${basis.toCss}")
 
   // Position
   def position(v: String): Style = one("position", v)
@@ -112,6 +123,30 @@ object css {
   def overflow(v: String): Style = one("overflow", v)
   def overflowY(v: String): Style = one("overflow-y", v)
   def overflowX(v: String): Style = one("overflow-x", v)
+  def pointerEvents(v: String): Style = one("pointer-events", v)
+
+  // Compound presets — small, recurring multi-decl combinations that
+  // come up across most apps. Each composes typed builders so the
+  // call site still reads like real CSS but stays short.
+
+  /** Single-line truncation with ellipsis. Pairs with a parent that
+    * has a constrained width and `min-width: 0` (e.g. `stack.fill`
+    * or an explicit `css.minWidth(Length.zero)`). */
+  val ellipsis: Style =
+    overflow("hidden") ++ textOverflow("ellipsis") ++ whiteSpace("nowrap")
+
+  /** Disable text selection (logos, avatars, toggle pills, button
+    * glyphs — anywhere a user dragging across the element shouldn't
+    * highlight text). */
+  val selectNone: Style = userSelect("none")
+
+  /** Italic. */
+  val italic: Style = fontStyle("italic")
+
+  /** Disable pointer events. Use on decorative overlays (toast
+    * bubbles, sticky tooltips, badge dots) that mustn't intercept
+    * clicks/hover on the layer beneath. */
+  val pointerNone: Style = pointerEvents("none")
 
   /** Escape hatch for properties not yet covered. Add a typed builder above before reaching for this. */
   def raw(prop: String, value: String): Style = one(prop, value)

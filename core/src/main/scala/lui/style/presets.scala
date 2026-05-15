@@ -27,6 +27,17 @@ object stack {
 
   /** Take all remaining flex space along the main axis. */
   val grow: Style = css.flexGrow(1)
+
+  /** Fill the remaining flex space **and** unlock the min-content
+    * floor on both axes. Equivalent to
+    * `flex: 1 1 0; min-width: 0; min-height: 0`.
+    *
+    * Use on a flex child that needs to scroll its own overflow, or
+    * that wraps an ellipsis text node. Without the `min-*: 0`
+    * unlock, the child refuses to shrink below its content's
+    * intrinsic width/height and breaks scroll / ellipsis. */
+  val fill: Style =
+    css.flex(1, 1, Length.zero) ++ css.minWidth(Length.zero) ++ css.minHeight(Length.zero)
 }
 
 /** Typography presets — themed text styles. Each value is a `ThemedStyle`, so it doubles as
@@ -54,13 +65,13 @@ object typo {
   }
 
   val label: ThemedStyle = ThemedStyle { t =>
-    css.fontSize(fontSizes.lg) ++
+    css.fontSize(fontSizes.xl) ++
       css.fontWeight(FontWeight.Medium) ++
       css.color(t.text)
   }
 
   val body: ThemedStyle = ThemedStyle { t =>
-    css.fontSize(fontSizes.lg) ++
+    css.fontSize(fontSizes.xl) ++
       css.color(t.text)
   }
 
@@ -70,7 +81,7 @@ object typo {
   }
 
   val hint: ThemedStyle = ThemedStyle { t =>
-    css.fontSize(fontSizes.sm) ++
+    css.fontSize(fontSizes.md) ++
       css.color(t.textSubtle)
   }
 }
@@ -81,7 +92,7 @@ object surface {
   val card: ThemedStyle = ThemedStyle { t =>
     css.background(t.surface) ++
       css.borderRadius(radius.xl) ++
-      css.border(Length.px(1.5), BorderStyle.Solid, t.border)
+      css.border(Length.px(1), BorderStyle.Solid, t.border)
   }
 
   val dim: ThemedStyle = ThemedStyle { t =>

@@ -19,6 +19,11 @@ enum Display(val toCss: String) {
   case InlineFlex extends Display("inline-flex")
   case Grid extends Display("grid")
   case None extends Display("none")
+  /** The element disappears from the box tree — its children act as
+    * direct children of the element's parent. Use for "transparent
+    * wrapper" elements like a `Show` toggle that mustn't break the
+    * parent's flex / grid layout when visible. */
+  case Contents extends Display("contents")
 }
 
 enum TextAlign(val toCss: String) {

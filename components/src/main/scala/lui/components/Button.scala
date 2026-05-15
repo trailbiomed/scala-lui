@@ -72,32 +72,32 @@ object Button extends ComponentFactory[Button] {
         css.raw("font-family", "inherit")
 
     val sizing = s match {
-      case Size.Small  => css.padding(spacing.xs, spacing.lg) ++ css.fontSize(fontSizes.md)
-      case Size.Medium => css.padding(spacing.md, spacing.xl) ++ css.fontSize(fontSizes.lg)
+      case Size.Small  => css.padding(spacing.sm, spacing.lg) ++ css.fontSize(fontSizes.md)
+      case Size.Medium => css.padding(spacing.md, spacing.xl) ++ css.fontSize(fontSizes.xl)
     }
 
     val variantStyle = (v, disabled, i.hovered) match {
       case (Variant.Primary, true, _) =>
         css.background(t.surfaceDim) ++ css.color(t.textSubtle) ++
-          css.border(Length.px(1.5), BorderStyle.Solid, Color.transparent)
+          css.border(Length.px(1), BorderStyle.Solid, Color.transparent)
       case (Variant.Primary, false, true) =>
         css.background(t.brandHover) ++ css.color(t.onBrand) ++
-          css.border(Length.px(1.5), BorderStyle.Solid, Color.transparent)
+          css.border(Length.px(1), BorderStyle.Solid, Color.transparent)
       case (Variant.Primary, false, false) =>
         css.background(t.brand) ++ css.color(t.onBrand) ++
-          css.border(Length.px(1.5), BorderStyle.Solid, Color.transparent)
+          css.border(Length.px(1), BorderStyle.Solid, Color.transparent)
       case (Variant.Secondary, _, true) =>
         css.background(t.brandSoft) ++ css.color(t.brand) ++
-          css.border(Length.px(1.5), BorderStyle.Solid, t.brand)
+          css.border(Length.px(1), BorderStyle.Solid, t.brand)
       case (Variant.Secondary, _, false) =>
         css.background(t.surface) ++ css.color(t.text) ++
-          css.border(Length.px(1.5), BorderStyle.Solid, t.border)
+          css.border(Length.px(1), BorderStyle.Solid, t.border)
       case (Variant.Ghost, _, true) =>
         css.background(t.brandSoft) ++ css.color(t.brand) ++
-          css.border(Length.px(1.5), BorderStyle.Solid, Color.transparent)
+          css.border(Length.px(1), BorderStyle.Solid, Color.transparent)
       case (Variant.Ghost, _, false) =>
         css.background(Color.transparent) ++ css.color(t.textMuted) ++
-          css.border(Length.px(1.5), BorderStyle.Solid, Color.transparent)
+          css.border(Length.px(1), BorderStyle.Solid, Color.transparent)
     }
 
     base ++ sizing ++ variantStyle

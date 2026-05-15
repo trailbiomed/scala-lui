@@ -139,6 +139,110 @@ object Foo extends ComponentFactory[Foo] {
 - `build` is called by `ComponentFactory.apply`, which folds user `Mod`s
   onto the result. Never write `mods.foreach(_(el)); el` yourself.
 
+### Slots: caller-supplied DOM into a named region
+
+`Prop.in[V]` is for reactive *values* (`String`, `Boolean`, enums). When
+the thing a caller needs to put into your component is **DOM** —
+children, event handlers, conditional `child <-- ...` bindings — use a
+**slot method** instead.
+
+A slot is just an internal `HtmlElement` stashed in the Component plus a
+static helper on the companion that returns a `Mod[El]` whose only job
+is to `amend` caller content onto that internal element:
+
+```scala
+final class Modal private[components] (
+    val root: HtmlElement,
+    private[components] val bodySlot: HtmlElement,   // the named region
+) extends Component
+
+object Modal extends ComponentFactory[Modal] {
+  def body(content: Modifier[HtmlElement]*): Mod[Modal] = el =>
+    el.bodySlot.amend(content*)
+}
+```
+
+Callers write `Modal(Modal.body(p("hello"), Button(...)))`. The slot
+accepts arbitrary Modifiers — components, attributes, `child <-- sig`,
+`onClick --> ...`, anything that goes inside any other tag. The
+framework doesn't know about slots; the name is a convention.
+
+Use slots for body/header/footer regions of cards, modals, drawers,
+popovers — anywhere the chrome is fixed and the contents vary by
+caller.
+
+### Recursive composition: state lives in the parent
+
+Once components nest more than one level deep, the natural pattern is:
+**the parent owns the source-of-truth `Var`; each child only has a Prop
+that's bound to the parent's `Var`**. The child's internal `*Var`
+becomes a proxy — `Prop.in` writes the parent's signal into it on each
+emission; `Prop.out` raises the child's bus to a sink the parent wires
+up. State flows down via `<--`, up via `-->`, two-way via `<-->`.
+
+```scala
+// At the parent:
+final class App private[components] (val root: HtmlElement) extends Component {
+  private[components] val refs:      Var[List[Ref]]      = Var(seed)
+  private[components] val activeId:  Var[Option[String]] = Var(None)
+  private[components] val selectBus: EventBus[String]    = new EventBus
+}
+
+object App extends ComponentFactory[App] {
+  override protected def build: App = {
+    val el = new App(div())
+    el.root.amend(
+      Sidebar(
+        Sidebar.refs     <-- el.refs.signal,       // down
+        Sidebar.activeId <-- el.activeId.signal,   // down
+        Sidebar.select   --> el.selectBus.writer,  // up
+      ),
+      // Two downstream effects from one upstream emission: route both
+      // off the shared bus rather than re-emitting the upstream event
+      // from two `Sidebar.select --> ...` bindings.
+      el.selectBus.events.map(Some(_)) --> el.activeId.writer,
+      el.selectBus.events
+        .compose(_.withCurrentValueOf(el.refs.signal))
+        .map { case (id, refs) =>
+          refs.map(r => if (r.id == id) r.touch() else r)
+        }
+        --> el.refs.writer,
+    )
+    el
+  }
+}
+```
+
+For dynamic lists where each item is its own Component, use
+`Signal[List[T]].split(_.id) { (key, init, sig) => ChildComponent(...).root }`
+— `split` only re-instantiates the item Components whose key changed,
+so per-item internal state (hover, focus, expanded) survives across list
+updates.
+
+### Reaching for internal buses across components in the same package
+
+Most cross-component wiring goes through Props (`Prop.in/out/inOut`),
+but occasionally the parent needs to consume *two* downstream effects
+from a single child event, or splice an internal stream into another
+component's processing. Because component internals are
+`private[components]`, the parent in the same package can read a child's
+`*Bus.events` or `*Var.signal` directly:
+
+```scala
+val saveBtn  = Button(Button.label := "Save", …)
+val cancelBtn = Button(Button.label := "Cancel", …)
+root.amend(
+  saveBtn,
+  cancelBtn,
+  saveBtn.clicks.compose(_.withCurrentValueOf(formVar.signal)) --> savedBus.writer,
+  cancelBtn.clicks.mapTo(false) --> openVar.writer,
+)
+```
+
+This stays inside the contract — components don't expose internal buses
+publicly; the access only works between components in the same
+`private[components]` scope.
+
 ## Critical Laminar/Scala-3 gotchas
 
 These come up repeatedly. Internalize them.
@@ -204,11 +308,71 @@ These come up repeatedly. Internalize them.
     you do need `Node`/`HtmlElement` specifically; use `.root` to extract
     it from a Component.
 
+11. **Don't put `display: flex` on `<th>` or `<td>`.** Table cells
+    default to `display: table-cell`; overriding that with `flex` (e.g.
+    via `stack.col(gap)`) takes the cell out of the table layout — the
+    header row floats *next to* the body instead of above it. Wrap the
+    cell's content in a child `<div>` and apply `stack.col` there:
+    ```scala
+    th(
+      css.padding(...),
+      div(stack.col(spacing.xs), label, filterInput)  // flex on the div, not the th
+    )
+    ```
+
+12. **`InOut` props have no `.map`/`.foreach` — only `Out` does.** If
+    the parent wants to transform the outbound value of an `InOut`
+    prop (e.g. tag each emission with a key before forwarding to a
+    shared bus), wire the outbound side as a separate `-->` binding to
+    a `writer.contramap` Observer:
+    ```scala
+    // Bind the inbound:
+    HeaderCell.filterValue <-- valuesByField.signal.map(_.getOrElse(field, "")),
+    // Adapt + forward the outbound:
+    HeaderCell.filterValue --> changesBus.writer.contramap[String](v => (field, v)),
+    ```
+    Don't try `HeaderCell.filterValue.map(...) -->` — `InOut` doesn't
+    surface a transform method. Adapting on the writer is the
+    binding-style equivalent.
+
+13. **`LockedEventKey` doesn't expose `.collect` / `.mapTo` directly.**
+    `onClick.mapToUnit` returns a `LockedEventKey`, not an `EventStream`.
+    Chain stream combinators *inside* `.compose(...)`:
+    ```scala
+    // wrong — .collect is not a member of LockedEventKey
+    onClick.mapToUnit
+      .compose(_.withCurrentValueOf(openVar.signal))
+      .collect { case true => () }
+      --> closeBus.writer
+
+    // right — collect inside the compose block
+    onClick.mapToUnit.compose(
+      _.withCurrentValueOf(openVar.signal).collect { case true => () }
+    ) --> closeBus.writer
+    ```
+
+14. **`withCurrentValueOf` collapses `Unit` and flattens tuples**
+    (Composition typeclass). Pattern-match the result accordingly:
+    | Stream type | + signal type | Composed `EventStream[…]` |
+    |---|---|---|
+    | `EventStream[Unit]` | `Signal[A]` | `EventStream[A]` (Unit drops) |
+    | `EventStream[A]` (non-tuple) | `Signal[B]` | `EventStream[(A, B)]` |
+    | `EventStream[(A, B)]` | `Signal[C]` | `EventStream[(A, B, C)]` (flat) |
+    | `EventStream[A]` | `Signal[B], Signal[C]` | `EventStream[(A, B, C)]` |
+    | `EventStream[Unit]` | `Signal[B], Signal[C]` | `EventStream[(B, C)]` |
+    So `Button.clicks.compose(_.withCurrentValueOf(sourceVar.signal))` is
+    just `EventStream[Source]` — no `._2` projection needed.
+
 ## State management patterns
 
 - **Single source of truth in `Var`s.** Compose derived state via
   `Signal.combine(...).map(...)`. Don't duplicate the same logical value
   in two Vars.
+- **Prefer binding-style over imperative writes.** Instead of
+  `someVar.set(x)` / `someVar.update(...)` inside an `Observer`, build an
+  `EventStream` whose emissions are the new value and route it with
+  `--> someVar.writer`. Stream-based code is composable, distinct-on-the-
+  way-out by default with `Prop.inOut`, and reads top-to-bottom.
 - **Round-trip via `var.writer.contramap[T](fn)`.** When a control emits a
   different type than your Var (e.g. SegmentedControl emits `String` but
   your Var is `Var[BrewMethod]`):
@@ -219,14 +383,124 @@ These come up repeatedly. Internalize them.
   }
   ```
   Prefer this over `Observer[T](v => myVar.set(...))`; it's the same thing
-  with less ceremony.
+  with less ceremony. The same trick adapts the outbound side of an
+  `InOut` prop when you need to tag emissions before forwarding (see
+  gotcha #12).
+- **Sample current values with `withCurrentValueOf` instead of `.now()`.**
+  When a stream event needs to read another Var's current value (e.g.
+  "on click, build the next list from the previous one"):
+  ```scala
+  buttonClicks
+    .compose(_.withCurrentValueOf(refsVar.signal))
+    .map { case (id, refs) =>
+      refs.map(r => if (r.id == id) r.touch() else r)
+    }
+    --> refsVar.writer
+  ```
+  Cleaner than reading `refsVar.now()` inside an `Observer`, and works
+  outside of an explicit `Owner`.
+- **Two effects from one event = two `-->` bindings.** If an upstream
+  emission needs to update two Vars, subscribe twice rather than chaining
+  inside an Observer:
+  ```scala
+  val nextSort: EventStream[(SortKey, SortDir)] = headerClicks
+    .compose(_.withCurrentValueOf(keyVar.signal, dirVar.signal))
+    .map { case (target, k, d) =>
+      if (target == k) (k, flip(d)) else (target, SortDir.Asc)
+    }
+  // Subscribe twice — each `-->` is its own subscription, both fire.
+  nextSort.map(_._1) --> keyVar.writer
+  nextSort.map(_._2) --> dirVar.writer
+  ```
+- **Async data → Var via `EventStream.fromFuture`.** Don't write
+  `future.onComplete { case Success(x) => v.set(...) }`. Wrap the future
+  into a stream and bind:
+  ```scala
+  val ready: Future[Loadable[A]] =
+    apiCall().map(Loadable.Loaded(_)).recover { case t => Loadable.Failed(t.getMessage) }
+  EventStream.fromFuture(ready) --> samplesVar.writer
+  ```
+- **Auto-clearing toasts / timers → `flatMapSwitch` + `delay`.** Replace
+  `setTimeout` callbacks that call `var.set(None)` later with:
+  ```scala
+  toastBus.events.map(Some(_)) --> toastVar.writer
+  toastBus.events
+    .flatMapSwitch(_ => EventStream.fromValue(None).delay(3000))
+    --> toastVar.writer
+  ```
+  `flatMapSwitch` cancels any pending clear when a new toast arrives, so
+  the latest message always gets its full duration.
+- **Simulated latency / mock timers → `EventStream.delay`.** Same pattern
+  for a "the LLM is thinking" 600 ms pause — the immediate side-effects
+  (`loading := true`, clear prior result) wire off the trigger bus; the
+  delayed side-effect (compute + show result) goes through
+  `trigger.delay(600).map(parse) --> resultVar.writer`.
 - **`Signal.now()` is package-private.** Inside an `Owner` you can read
   with `signal.now()`, but from action methods on your state class, build
   a `def currentX(): X` helper that reads from the underlying Vars.
-- **Persist state across page changes** by lifting `Var`s to module-level
-  `lazy val`s instead of allocating them in `apply()`. Page remounts wipe
-  local Vars. Or bubble up application state into higher level Vars. 
-  Each component should own its state in their own Vars.
+- **Persist state across page changes.** Each component should own its
+  state in its own Vars. When the same logical state spans children, lift
+  it to the common parent (see "Recursive composition" above) — the
+  parent's Var survives child re-mounts, the children re-bind on the way
+  in.
+
+## Persisting state across navigation
+
+Three options, in order of preference:
+
+1. **Sibling chrome that's mounted once.** Anything outside the
+   swappable area — header, sidebar, footer, toast bar — sits as a
+   sibling of the `child <-- viewSig.map(panelFor)` binder, not
+   inside it. It's mounted at app boot and stays mounted across nav.
+   The slot pattern (`Workbench.header(...)`, `Workbench.sidebar(...)`,
+   `Workbench.main(...)`) makes this explicit: only `main` gets a
+   `child <-- ...` swap; the rest are filled once.
+
+2. **Lift state up.** When a panel under the swap area needs its
+   semantic state (filters, search text, sort order, draft form
+   inputs) to survive nav-away/nav-back, put the `Var`s on a
+   long-lived ancestor (App) and feed the panel via Props. The panel
+   itself can be torn down and rebuilt freely — its props re-bind on
+   mount, so the user sees the previous values. This is the default
+   path for state that's *legitimately shared* with the rest of the
+   app anyway (the URL-style state of the whole workbench).
+
+3. **Mount once, toggle visibility (`Show`).** When a panel needs to
+   keep its **identity** — internal Component state that's painful
+   to lift (e.g. virtualized list scroll position, deeply nested
+   tab-internal sort keys), a long-running subscription it owns
+   (polling stream, websocket), or a third-party widget that resists
+   remount (canvas, embedded iframe) — wrap each panel in a `Show`
+   sibling and switch which one is visible:
+   ```scala
+   div(
+     stack.col(spacing.lg),
+     Show(
+       Show.visible <-- viewVar.signal.map(_ == View.Explore),
+       Show.content(ExplorePanel(... bindings ...)),
+     ),
+     Show(
+       Show.visible <-- viewVar.signal.map(_ == View.Analyses),
+       Show.content(AnalysesPanel(... bindings ...)),
+     ),
+   )
+   ```
+   `Show` mounts each subtree once at build time and toggles between
+   `display: contents` (transparent — children inherit the parent's
+   flex/grid layout) and `display: none`. Subscriptions, internal
+   `Var`s, scroll positions, and any third-party imperatively-mounted
+   widget all stay alive while hidden.
+
+   Cost: every wrapped panel is alive from app boot — initial data
+   fetches fire, intervals tick, DOM exists in memory. For cheap
+   panels that's fine; for heavy ones (big chart libs, large
+   payloads) prefer option (2) and lift state up to a Var that
+   survives the remount.
+
+   Same trick scales to tabs *inside* a long-lived modal — keep
+   each tab Component mounted once as a `Show`-wrapped child of the
+   modal, toggle on `state.activeTab == TabId.X`. The modal's open
+   lifecycle still tears them all down on dismiss.
 
 ## Layout primitives
 
@@ -237,7 +511,20 @@ flex-wrap-with-gap.
 `stack.*` presets:
 - Containers: `stack.col(gap)`, `stack.row(gap)`, `stack.between(gap)`,
   `stack.centerAll`.
-- Child verbs: `stack.grow`, `stack.noShrink`, `stack.wrap`.
+- Child verbs: `stack.grow`, `stack.noShrink`, `stack.wrap`, `stack.fill`.
+
+`stack.fill` is the "fill remaining space + unlock the min-content
+floor" preset — `flex: 1 1 0; min-width: 0; min-height: 0`. Reach for
+it when a flex child needs to scroll its own overflow or wrap an
+ellipsis text node; without the `min-*: 0` unlock the child refuses to
+shrink below its content's intrinsic size and either grows the parent
+or breaks the truncation.
+
+`css.*` also exposes a few compound presets for recurring multi-decl
+combinations: `css.ellipsis` (single-line truncation), `css.selectNone`
+(disable text selection), `css.italic`, `css.pointerNone` (disable
+pointer events — for decorative overlays). These compose with `++` just
+like the typed builders.
 
 `surface` vs `Surface`:
 - `surface` (lowercase, `lui.style.surface`) — `ThemedStyle` values
@@ -318,6 +605,7 @@ Two shapes of component exist:
 | `Button` | `label:in`, `variant:in (Primary/Secondary/Ghost)`, `size:in (Small/Medium)`, `disabled:in`, `loading:in`, `click:out` | Default action surface. |
 | `IconButton` | `icon:in`, `ariaLabel:in`, `variant:in`, `size:in`, `disabled:in`, `click:out` | Always pair with `ariaLabel`. |
 | `CloseButton` | `size:in (Default/Small)`, `disabled:in`, `ariaLabel:in`, `click:out` | × dismiss control. |
+| `Chip` | `label:in`, `active:in`, `disabled:in`, `click:out` | Pill-shaped toggle. Parent owns "which is active" and feeds each chip its `active <-- ...`. |
 | `DownloadTrigger` | `label:in`, `href:in`, `filename:in` | `<a download>` styled as a primary button. |
 
 ### Form controls
@@ -349,6 +637,7 @@ Two shapes of component exist:
 |---|---|---|
 | `Accordion` | `title:in`, `summary:in`, `open:inOut`, `body(slot)` | |
 | `Collapsible` | `open:inOut`, `body(slot)` | No header; bring your own toggle. |
+| `Show` | `visible:in`, `content(slot)` | Persistent show/hide. Mounts content once; toggles `display: contents` ↔ `display: none`. Wrapped subtree keeps its internal state, subscriptions, scroll position. See "Persisting state across navigation". |
 | `Tabs` | `tabs:in[Seq[(String,String)]]`, `active:inOut`, `variant:in` | |
 | `Breadcrumb` | `items:in[Seq[(String,String)]]`, `select:out` | Emits selected key. |
 | `Pagination` | `page:inOut[Int]`, `totalPages:in`, `siblings:in` | 1-based. |
@@ -385,7 +674,7 @@ Two shapes of component exist:
 
 | Component | Props (kind) | Notes |
 |---|---|---|
-| `Modal` | `open:inOut`, `title:in`, `width:in`, `body(slot)` | Centered dialog. |
+| `Modal` | `open:inOut`, `title:in`, `width:in`, `dismissible:in`, `close:out`, `body(slot)`, `footer(slot)` | Centered dialog. Built-in close × when `dismissible` (default true); footer bar only mounts when `Modal.footer(...)` is supplied. |
 | `Drawer` | `open:inOut`, `width:in`, `title:in`, `side:in (Left/Right)`, `body(slot)` | Side panel. |
 | `Tooltip` | `label:in`, `placement:in (Top/Right/Bottom/Left)`, `trigger(slot)` | Hover-only. |
 | `Popover` | `open:inOut`, `placement:in`, `trigger(slot)`, `body(slot)` | Click-toggled; building block for the next three. |
@@ -447,12 +736,13 @@ Two shapes of component exist:
 |---|---|
 | Color | `background(Color)`, `color(Color)`, `borderColor(Color)`, `boxShadow(String)` |
 | Length | `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`, `padding(l)`, `padding(v, h)`, `margin(l)`, `gap(l)` |
-| Border | `border(w, BorderStyle, Color)`, `borderRadius(Length)`, `borderBottom(w, BorderStyle, Color)` |
-| Type | `fontSize(Length)`, `fontWeight(FontWeight)`, `letterSpacing(Length)`, `textTransform(String)`, `textAlign(TextAlign)`, `lineHeight(Double)`, `whiteSpace(String)` |
-| Flex/layout | `display(Display)`, `flexDirection(String)`, `alignItems(String)`, `justifyContent(String)`, `flexWrap(String)`, `flexShrink(Int)`, `flexGrow(Int)` |
+| Border | `border(w, BorderStyle, Color)`, `borderRadius(Length)`, `borderTop/Right/Bottom/Left(w, BorderStyle, Color)` |
+| Type | `fontSize(Length)`, `fontWeight(FontWeight)`, `fontStyle(String)`, `letterSpacing(Length)`, `textTransform(String)`, `textAlign(TextAlign)`, `textOverflow(String)`, `lineHeight(Double)`, `whiteSpace(String)`, `userSelect(String)` |
+| Flex/layout | `display(Display)`, `flexDirection(String)`, `alignItems(String)`, `justifyContent(String)`, `flexWrap(String)`, `flexShrink(Int)`, `flexGrow(Int)`, `flex(grow, shrink, basis)` |
 | Position | `position(String)`, `top/right/bottom/left(Length)`, `zIndex(Int)` |
 | Anim | `transition(prop: String, ms: Int)`, `transform(String)` |
-| Misc | `cursor(String)`, `opacity(Double)`, `overflow/overflowX/overflowY(String)` |
+| Misc | `cursor(String)`, `opacity(Double)`, `overflow/overflowX/overflowY(String)`, `pointerEvents(String)` |
+| Compound presets | `ellipsis`, `selectNone`, `italic`, `pointerNone` — multi-decl Styles for recurring combinations |
 | Escape | `raw(prop: String, value: String)` — use only when no typed builder exists |
 
 ### `stack.*` — pure-layout shortcuts (returns `Style`)
@@ -466,6 +756,7 @@ Two shapes of component exist:
 | `stack.wrap` | `flex-wrap: wrap` |
 | `stack.noShrink` | `flex-shrink: 0` |
 | `stack.grow` | `flex-grow: 1` |
+| `stack.fill` | `flex: 1 1 0; min-width: 0; min-height: 0` — fill remaining + unlock the min-content floor (for scrollable / ellipsis children) |
 
 ### `typo.*` — themed text presets (each is a `ThemedStyle`)
 
