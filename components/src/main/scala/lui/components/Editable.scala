@@ -39,12 +39,6 @@ object Editable extends ComponentFactory[Editable] {
     val root = div()
     val el = new Editable(root)
 
-    def startEdit(): Unit = {
-      draft.set(el.valueVar.now())
-      el.editingVar.set(true)
-      // Focus on next tick (after render)
-      val _ = scala.scalajs.js.timers.setTimeout(0)(inputEl.ref.focus())
-    }
     def commit(): Unit = {
       el.valueVar.set(draft.now())
       el.editingVar.set(false)
@@ -53,8 +47,21 @@ object Editable extends ComponentFactory[Editable] {
       el.editingVar.set(false)
     }
 
+    // Becomes-editing trigger fires for both click-on-preview AND
+    // external `editing := true` writes from the parent (e.g. a
+    // "Rename" button). On every entry into edit mode, seed the
+    // draft from the current value and focus the input.
+    val becomesEditing: EventStream[Unit] =
+      el.editingVar.signal.changes.collect { case true => () }
+
     root.amend(
-      child <-- el.editingVar.signal.map(if (_) inputEl else previewEl)
+      child <-- el.editingVar.signal.map(if (_) inputEl else previewEl),
+      becomesEditing
+        .compose(_.withCurrentValueOf(el.valueVar.signal))
+        --> draft.writer,
+      becomesEditing --> Observer[Unit] { _ =>
+        val _ = scala.scalajs.js.timers.setTimeout(0)(inputEl.ref.focus())
+      },
     )
 
     previewEl.amend(
@@ -87,7 +94,10 @@ object Editable extends ComponentFactory[Editable] {
       child.text <-- Signal.combine(el.valueVar.signal, el.placeholderVar.signal).map {
         case (v, ph) => if (v.isEmpty) ph else v
       },
-      onClick.mapToUnit --> Observer[Unit](_ => startEdit())
+      // Click flips editing on; the `becomesEditing` stream above
+      // handles draft-seeding and focus uniformly for both click and
+      // external `editing := true` writes.
+      onClick.mapTo(true) --> el.editingVar.writer
     )
 
     inputEl.amend(

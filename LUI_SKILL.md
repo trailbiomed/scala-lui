@@ -41,6 +41,12 @@ import lui.style.*
 
 @main def main(): Unit = {
   val mount = dom.document.getElementById("app")
+  // One-shot global reset: box-sizing: border-box (everywhere) +
+  // font smoothing on <body>. Without box-sizing, `width: 100%` +
+  // padding overflows the parent and rounded corners get clipped
+  // by `overflow: hidden`; without smoothing, system-ui text on
+  // macOS Retina reads notably heavier than Chakra's default.
+  reset.install()
   Theme.signal.foreach { t =>
     dom.document.body.style.backgroundColor = t.bg.toCss
     dom.document.body.style.color = t.text.toCss
@@ -69,7 +75,7 @@ type="module">` pointing at the linker output. No stylesheet links.
 | Package | Purpose |
 |---|---|
 | `lui` | `Component`, `ComponentFactory`, `Prop` (props DSL), `Interactive`, `Device` |
-| `lui.style` | `Theme`, `palette`, `spacing`, `radius`, `fontSizes`, `breakpoints`, `Length`, `Color`, `css.*` builders, `Style`, `ThemedStyle`, `themed()`, `stack.*`, `typo.*`, `surface.*` |
+| `lui.style` | `Theme`, `palette`, `spacing`, `radius`, `fontSizes`, `breakpoints`, `Length`, `Color`, `css.*` builders, `Style`, `ThemedStyle`, `themed()`, `stack.*`, `typo.*`, `surface.*`, `reset.install()` |
 | `lui.components` | All UI components (`Button`, `TextInput`, `Modal`, …) |
 
 ## Three layers of styling
@@ -618,7 +624,7 @@ Two shapes of component exist:
 | `PasswordInput` | `value:inOut`, `placeholder:in`, `disabled:in`, `invalid:in`, `width:in` | Reveal button built-in. |
 | `PinInput` | `value:inOut`, `length:in`, `mask:in` | Paste fills cells from focused position onward. |
 | `TagsInput` | `value:inOut[Seq[String]]`, `placeholder:in`, `disabled:in` | Enter/comma commits draft. |
-| `Editable` | `value:inOut`, `placeholder:in`, `editing:inOut` | Click-to-edit text. |
+| `Editable` | `value:inOut`, `placeholder:in`, `editing:inOut`, `variant:in (Body/Heading)` | Click-to-edit text. Click the preview, *or* set `editing := true` externally (e.g. from a "Rename" button) — the draft is seeded from `value` and the input is focused either way. Enter commits, Escape cancels, blur commits. `Heading` variant renders a 16-px semibold preview and a bottom-border-only input for click-to-rename-a-title patterns. |
 | `FileUpload` | `files:inOut[Seq[dom.File]]`, `multiple:in`, `accept:in`, `label:in` | Drag-and-drop. |
 | `Checkbox` | `checked:inOut`, `disabled:in`, `label:in` | |
 | `CheckboxCard` | `title:in`, `description:in`, `checked:inOut`, `disabled:in` | Card-shaped checkbox. |

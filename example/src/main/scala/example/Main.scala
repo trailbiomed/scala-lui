@@ -11,6 +11,7 @@ import example.pages.CoffeeMachinePage
 private val CoffeeSlug = "coffee-machine"
 
 @main def main(): Unit = {
+  reset.install()
   val mount = dom.document.getElementById("app")
   if (mount != null) {
     Theme.signal.foreach { t =>
