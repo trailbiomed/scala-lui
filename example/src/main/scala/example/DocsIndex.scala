@@ -130,6 +130,9 @@ object DocsIndex {
       DocEntry("hover-card",  "HoverCard",   () => OverlayPages.hoverCard()),
       DocEntry("toggle-tip",  "ToggleTip",   () => OverlayPages.toggleTip())
     )),
+    DocCategory("Plot", Seq(
+      DocEntry("plot",      "Plot",      () => PlotPages.plot())
+    )),
     DocCategory("Application primitives", Seq(
       DocEntry("page-header",       "PageHeader",       () => AppPages.pageHeader()),
       DocEntry("section-label",     "SectionLabel",     () => AppPages.sectionLabel()),

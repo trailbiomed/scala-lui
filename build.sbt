@@ -43,7 +43,7 @@ ThisBuild / scalacOptions ++= Seq(
 )
 
 lazy val root = (project in file("."))
-  .aggregate(core, components, example, devserver)
+  .aggregate(core, components, plot, example, devserver)
   .settings(publish / skip := true)
 
 lazy val core = (project in file("core"))
@@ -61,10 +61,20 @@ lazy val components = (project in file("components"))
   .dependsOn(core)
   .settings(name := "lui-components")
 
+// Plot wrapper around nspl-canvas-js. Kept separate so apps that don't need
+// charting don't pull in the renderer.
+lazy val plot = (project in file("plot"))
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(core, components)
+  .settings(
+    name := "lui-plot",
+    libraryDependencies += "io.github.pityka" %%% "nspl-canvas-js" % "0.17.0"
+  )
+
 // Demo app. Not published.
 lazy val example = (project in file("example"))
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(components)
+  .dependsOn(components, plot)
   .settings(
     publish / skip := true,
     scalaJSUseMainModuleInitializer := true,

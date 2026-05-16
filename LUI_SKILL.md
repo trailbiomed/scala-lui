@@ -77,6 +77,7 @@ type="module">` pointing at the linker output. No stylesheet links.
 | `lui` | `Component`, `ComponentFactory`, `Prop` (props DSL), `Interactive`, `Device`, `Day` |
 | `lui.style` | `Theme`, `palette`, `spacing`, `radius`, `fontSizes`, `breakpoints`, `Length`, `Color`, `css.*` builders, `Style`, `ThemedStyle`, `themed()`, `stack.*`, `typo.*`, `surface.*`, `reset.install()` |
 | `lui.components` | All UI components (`Button`, `TextInput`, `Modal`, …) |
+| `lui.plot` (sbt module `lui-plot`, opt-in) | `Plot[K]` — wraps `nspl-canvas-js`. Use `Plot.of(initial)` to bind a `K` by type inference, then call the returned bundle's `apply(mods*)`. Adds the `io.github.pityka::nspl-canvas-js` dep. |
 
 ## Three layers of styling
 
@@ -736,6 +737,42 @@ Two shapes of component exist:
 | `SectionLabel` | `text:in` |
 | `MetricCell` | `value:in`, `score:in`, `bar:in[Option[Double]]`, `state:in (Idle/Active/Running/Queued)`, `click:out` |
 | `ReferenceCard` | `name:in`, `icon:in`, `sourceLabel:in`, `sampleCount:in`, `organism:in`, `description:in`, `lastUsed:in`, `click:out` |
+
+### Plotting (`lui.plot`, sbt module `lui-plot`)
+
+Opt-in subproject that wraps the nspl canvas renderer. Adds `io.github.pityka::nspl-canvas-js` to your classpath; the rest of `lui` doesn't pay for it.
+
+```scala
+import org.nspl.*
+import org.nspl.canvasrenderer.*   // brings the implicit Renderer[K, CanvasRC]
+import lui.plot.*
+
+val data  = (0 to 100).map(i => (i.toDouble, math.sin(i * 0.2)))
+val build = xyplot(data -> line())(par.xlab("i").ylab("sin"))
+val P = Plot.of(build)             // K inferred from `build`; never typed at the use site
+P(
+  P.width  := 600,
+  P.height := 250,
+  P.hover  --> Observer[Plot.PlotEvent](e => println(s"hover ${e.id}")),
+  P.build  <-- buildSignal         // optional — each emission re-renders via nspl's rAF updater
+)
+```
+
+`Plot[K]` props (all live on the `Plot.of[K]` bundle, *not* on the `Plot` companion):
+
+| Prop | Kind | Notes |
+|---|---|---|
+| `build` | `InOut[Build[K]]` | Initial comes from `Plot.of(initial)`. Emissions on `<-- src` feed nspl's in-place updater; the accumulated zoom/pan event store survives swaps. |
+| `width`, `height` | `In[Int]` | Read once at construction. Resizing requires recreating the plot. |
+| `enableScroll`, `enableDrag`, `enableCrosshair` | `In[Boolean]` | Mouse-wheel zoom / drag-pan / crosshair overlay. |
+| `click` | `Out[Identifier]` | Plot-area mousedown (the bare area, not a shape). |
+| `hover`, `unhover`, `shapeClick` | `Out[Plot.PlotEvent]` | `PlotEvent(id, point, MouseEvent)`. The `Point` is in canvas space (same frame as `PlotAreaIdentifier.bounds`). |
+| `select` | `Out[collection.Seq[Identifier]]` | shift+drag rectangle. |
+
+**Gotchas:**
+- nspl uses `collection.Seq`, not `scala.Seq`. The `select` prop reflects that.
+- The hover callback fires at the browser's mousemove rate (coalesced via rAF). Keep observers cheap.
+- Inside `Plot.of(buildSignal.now())`, you can't call `.now()` on a derived signal (it's package-private). Extract the build function and call it directly: `Plot.of(buildFor(freq.now()))`.
 
 ## Design tokens & style primitives (`lui.style`)
 
