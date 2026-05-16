@@ -7,6 +7,139 @@ import lui.components.*
 
 object IconPages {
 
+  /** The curated Lucide glyph set shipped as `lui.components.icons.*`. */
+  private val lucideEntries: Seq[(String, SvgElement)] = Seq(
+    "chevronLeft"    -> icons.chevronLeft,
+    "chevronRight"   -> icons.chevronRight,
+    "chevronUp"      -> icons.chevronUp,
+    "chevronDown"    -> icons.chevronDown,
+    "arrowLeft"      -> icons.arrowLeft,
+    "arrowRight"     -> icons.arrowRight,
+    "arrowUp"        -> icons.arrowUp,
+    "arrowDown"      -> icons.arrowDown,
+    "externalLink"   -> icons.externalLink,
+    "x"              -> icons.x,
+    "check"          -> icons.check,
+    "plus"           -> icons.plus,
+    "minus"          -> icons.minus,
+    "search"         -> icons.search,
+    "menu"           -> icons.menu,
+    "moreHorizontal" -> icons.moreHorizontal,
+    "filter"         -> icons.filter,
+    "refresh"        -> icons.refresh,
+    "info"           -> icons.info,
+    "alertTriangle"  -> icons.alertTriangle,
+    "alertCircle"    -> icons.alertCircle,
+    "checkCircle"    -> icons.checkCircle,
+    "xCircle"        -> icons.xCircle,
+    "eye"            -> icons.eye,
+    "pencil"         -> icons.pencil,
+    "trash"          -> icons.trash,
+    "copy"           -> icons.copy,
+    "download"       -> icons.download,
+    "upload"         -> icons.upload,
+    "file"           -> icons.file,
+    "folder"         -> icons.folder,
+    "link"           -> icons.link,
+    "home"           -> icons.home,
+    "user"           -> icons.user,
+    "users"          -> icons.users,
+    "settings"       -> icons.settings,
+    "logOut"         -> icons.logOut,
+    "lock"           -> icons.lock,
+    "sun"            -> icons.sun,
+    "moon"           -> icons.moon,
+    "star"           -> icons.star,
+    "heart"          -> icons.heart,
+    "bell"           -> icons.bell,
+    "calendar"       -> icons.calendar,
+    "mail"           -> icons.mail,
+    "apps"           -> icons.apps
+  )
+
+  /** Renders a single glyph in a labeled tile. */
+  private def glyphTile(name: String, glyph: SvgElement): HtmlElement =
+    div(
+      themed(t =>
+        stack.col(spacing.sm) ++
+          css.alignItems("center") ++
+          css.padding(spacing.md) ++
+          css.borderRadius(radius.md) ++
+          css.border(Length.px(1), BorderStyle.Solid, t.border) ++
+          css.background(t.surface)
+      ),
+      div(
+        ThemedStyle(t => css.color(t.text) ++ css.width(Length.px(24)) ++ css.height(Length.px(24))),
+        glyph
+      ),
+      span(typo.hint, name)
+    )
+
+  def lucide(): HtmlElement = PageTemplate(
+    title = "icons.* (Lucide)",
+    summary = "A curated set of stroke-based 24×24 SVG glyphs from lucide.dev (MIT). " +
+      "Each uses currentColor, so the parent's css.color(...) tints them. Wrap with Icon for sizing."
+  )(
+    PageTemplate.section("Usage")(
+      PageTemplate.paragraph(
+        "Each glyph is an SvgElement. Drop it directly into a tag, or pass through Icon(size, color) " +
+          "for the standard inline-flex + sized wrapper:"
+      ),
+      Code(
+        Code.block := true,
+        Code.text :=
+          """// Bare: inherits color and fills its parent box
+            |span(themed(t => css.color(t.brand)), icons.check)
+            |
+            |// Sized via Icon (recommended in buttons / inline text)
+            |Icon(size = Length.px(20))(icons.search)
+            |Icon(size = Length.px(16), color = Some(palette.red600))(icons.trash)
+            |
+            |// Pair with text in a button
+            |Button(
+            |  Button.label := "",
+            |  Button.variant := Button.Variant.Secondary
+            |)
+            |  // ...or compose a custom row:
+            |div(
+            |  stack.row(spacing.sm) ++ css.alignItems("center"),
+            |  Icon(size = Length.px(16))(icons.download),
+            |  span("Export CSV")
+            |)""".stripMargin
+      )
+    ),
+    PageTemplate.section("All shipped glyphs")(
+      div(
+        css.display(Display.Grid) ++
+          css.raw("grid-template-columns", "repeat(auto-fill, minmax(120px, 1fr))") ++
+          css.gap(spacing.md),
+        lucideEntries.map { case (name, glyph) => glyphTile(name, glyph) }
+      )
+    ),
+    PageTemplate.section("Colors")(
+      PageTemplate.codedDemo(
+        "Recolor via the parent",
+        """div(themed(t => css.color(t.brand)),   Icon(size = Length.px(20))(icons.checkCircle))
+          |div(themed(t => css.color(t.success)), Icon(size = Length.px(20))(icons.checkCircle))
+          |div(themed(t => css.color(t.warning)), Icon(size = Length.px(20))(icons.alertTriangle))
+          |div(themed(t => css.color(t.danger)),  Icon(size = Length.px(20))(icons.xCircle))""".stripMargin
+      )(
+        div(stack.row(spacing.lg) ++ css.alignItems("center"),
+          div(themed(t => css.color(t.brand)),   Icon(size = Length.px(20))(icons.checkCircle)),
+          div(themed(t => css.color(t.success)), Icon(size = Length.px(20))(icons.checkCircle)),
+          div(themed(t => css.color(t.warning)), Icon(size = Length.px(20))(icons.alertTriangle)),
+          div(themed(t => css.color(t.danger)),  Icon(size = Length.px(20))(icons.xCircle))
+        )
+      )
+    ),
+    PageTemplate.behavior(
+      "All glyphs are 24×24 with stroke-width 2, round line caps and joins.",
+      "fill is none and stroke is currentColor — color inherits from the parent.",
+      "width and height default to 100%, so the icon fills the wrapping box. Use the Icon factory to pin a size.",
+      "Add new glyphs by copying their <path>/<polyline>/<circle>/<line>/<rect> elements from lucide.dev into icons.scala."
+    )
+  )
+
   def icon(): HtmlElement = PageTemplate(
     title = "Icon",
     summary = "Wraps a glyph or SVG with a fixed size. Uses currentColor so the parent can recolor."

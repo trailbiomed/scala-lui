@@ -97,6 +97,7 @@ object DocsIndex {
     )),
     DocCategory("Icons", Seq(
       DocEntry("icon",          "Icon",         () => IconPages.icon()),
+      DocEntry("lucide",        "icons.* set",  () => IconPages.lucide()),
       DocEntry("checkmark",     "Checkmark",    () => IconPages.checkmark()),
       DocEntry("radiomark",     "Radiomark",    () => IconPages.radiomark()),
       DocEntry("color-swatch",  "ColorSwatch",  () => IconPages.colorSwatch())

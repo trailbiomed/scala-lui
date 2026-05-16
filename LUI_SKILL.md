@@ -702,7 +702,8 @@ Two shapes of component exist:
 | `Highlight` | `Highlight(text: String, query: String)` | Wraps every match of `query` in `Mark`. |
 | `Code` | `Code(Code.text := …, Code.block := …)` | Inline chip or block. |
 | `Kbd` | `Kbd(Kbd.key := …)` | Keyboard-key chip. |
-| `Icon` | `Icon(size = …, color = Some(Color))(glyph*)` | |
+| `Icon` | `Icon(size = …, color = Some(Color))(glyph*)` | Wrapper. `glyph` is anything — string, emoji, `icons.*`, custom SVG. |
+| `icons` | `icons.check`, `icons.search`, `icons.trash`, … | Curated Lucide glyph set (24×24, stroke-based, MIT). Returns `SvgElement`. Recolors via parent `css.color(...)`. Add new ones in `components/.../icons.scala`. |
 | `Checkmark` | `Checkmark(size = …)` | |
 | `Radiomark` | `Radiomark(size = …)` | |
 | `ColorSwatch` | `ColorSwatch(c: Color, size, rounded)` | |
