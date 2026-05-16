@@ -77,7 +77,7 @@ type="module">` pointing at the linker output. No stylesheet links.
 | `lui` | `Component`, `ComponentFactory`, `Prop` (props DSL), `Interactive`, `Device`, `Day` |
 | `lui.style` | `Theme`, `palette`, `spacing`, `radius`, `fontSizes`, `breakpoints`, `Length`, `Color`, `css.*` builders, `Style`, `ThemedStyle`, `themed()`, `stack.*`, `typo.*`, `surface.*`, `reset.install()` |
 | `lui.components` | All UI components (`Button`, `TextInput`, `Modal`, …) |
-| `lui.plot` (sbt module `lui-plot`, opt-in) | `Plot[K]` — wraps `nspl-canvas-js`. Use `Plot.of(initial)` to bind a `K` by type inference, then call the returned bundle's `apply(mods*)`. Adds the `io.github.pityka::nspl-canvas-js` dep. |
+| `lui.plot` (sbt module `lui-plot`, opt-in) | `Plot[K]` — wraps `nspl-canvas-js` and `nspl-svg-js`. Use `Plot.canvas(initial)` or `Plot.svg(initial)` (same prop API; pick the backend) to bind `K` by type inference, then call the returned bundle's `apply(mods*)`. |
 
 ## Three layers of styling
 
@@ -740,29 +740,38 @@ Two shapes of component exist:
 
 ### Plotting (`lui.plot`, sbt module `lui-plot`)
 
-Opt-in subproject that wraps the nspl canvas renderer. Adds `io.github.pityka::nspl-canvas-js` to your classpath; the rest of `lui` doesn't pay for it.
+Opt-in subproject that wraps the nspl canvas and SVG renderers. Adds `io.github.pityka::nspl-canvas-js` and `nspl-svg-js` to your classpath; the rest of `lui` doesn't pay for them.
+
+Two factories with identical prop APIs; pick the backend by which one you call and which implicit renderer is in scope:
 
 ```scala
 import org.nspl.*
-import org.nspl.canvasrenderer.*   // brings the implicit Renderer[K, CanvasRC]
+import org.nspl.canvasrenderer.*   // for Plot.canvas — brings Renderer[K, CanvasRC]
+// or
+import org.nspl.svgrenderer.*      // for Plot.svg    — brings Renderer[K, SvgRC]
 import lui.plot.*
 
 val data  = (0 to 100).map(i => (i.toDouble, math.sin(i * 0.2)))
 val build = xyplot(data -> line())(par.xlab("i").ylab("sin"))
-val P = Plot.of(build)             // K inferred from `build`; never typed at the use site
+
+val P = Plot.canvas(build)         // or Plot.svg(build)
 P(
   P.width  := 600,
   P.height := 250,
-  P.hover  --> Observer[Plot.PlotEvent](e => println(s"hover ${e.id}")),
+  P.shapeClick.map(e => describe(e.id)) --> msg.writer,
   P.build  <-- buildSignal         // optional — each emission re-renders via nspl's rAF updater
 )
 ```
 
-`Plot[K]` props (all live on the `Plot.of[K]` bundle, *not* on the `Plot` companion):
+Backend tradeoffs:
+- **`Plot.canvas`** — single DOM node. Fast for many points (thousands+). No per-shape CSS.
+- **`Plot.svg`** — one DOM node per shape. Vector output (clean print, copy into Illustrator/Figma, screen reader-friendly). Slower past a few hundred shapes.
+
+`Plot[K]` props (all live on the `Plot.canvas[K]` bundle, *not* on the `Plot` companion):
 
 | Prop | Kind | Notes |
 |---|---|---|
-| `build` | `InOut[Build[K]]` | Initial comes from `Plot.of(initial)`. Emissions on `<-- src` feed nspl's in-place updater; the accumulated zoom/pan event store survives swaps. |
+| `build` | `InOut[Build[K]]` | Initial comes from `Plot.canvas(initial)`. Emissions on `<-- src` feed nspl's in-place updater; the accumulated zoom/pan event store survives swaps. |
 | `width`, `height` | `In[Int]` | Read once at construction. Resizing requires recreating the plot. |
 | `enableScroll`, `enableDrag`, `enableCrosshair` | `In[Boolean]` | Mouse-wheel zoom / drag-pan / crosshair overlay. |
 | `click` | `Out[Identifier]` | Plot-area mousedown (the bare area, not a shape). |
@@ -772,7 +781,7 @@ P(
 **Gotchas:**
 - nspl uses `collection.Seq`, not `scala.Seq`. The `select` prop reflects that.
 - The hover callback fires at the browser's mousemove rate (coalesced via rAF). Keep observers cheap.
-- Inside `Plot.of(buildSignal.now())`, you can't call `.now()` on a derived signal (it's package-private). Extract the build function and call it directly: `Plot.of(buildFor(freq.now()))`.
+- Inside `Plot.canvas(buildSignal.now())`, you can't call `.now()` on a derived signal (it's package-private). Extract the build function and call it directly: `Plot.canvas(buildFor(freq.now()))`.
 
 ## Design tokens & style primitives (`lui.style`)
 

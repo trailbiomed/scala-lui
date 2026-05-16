@@ -6,7 +6,6 @@ import lui.style.*
 import lui.components.*
 import lui.plot.*
 import org.nspl.*
-import org.nspl.canvasrenderer.*
 
 object PlotPages {
 
@@ -19,8 +18,8 @@ object PlotPages {
 
     PageTemplate.section("Module")(
       PageTemplate.paragraph(
-        "Plot lives in lui.plot (sbt module lui-plot). It depends on io.github.pityka::nspl-canvas-js, " +
-          "and that dep is the reason it's separate from lui-components."
+        "Plot lives in lui.plot (sbt module lui-plot). It depends on io.github.pityka::nspl-canvas-js " +
+          "and io.github.pityka::nspl-svg-js — the renderers are why it's separate from lui-components."
       ),
       Code(
         Code.block := true,
@@ -28,33 +27,66 @@ object PlotPages {
           """// build.sbt
             |libraryDependencies += "io.github.pityka" %%% "lui-plot" % "<version>"
             |
-            |// at the call site:
+            |// at the call site — pick one renderer per file or per scope:
             |import org.nspl.*
-            |import org.nspl.canvasrenderer.*       // brings the implicit Renderer[K, CanvasRC]
+            |import org.nspl.canvasrenderer.*   // for Plot.canvas; brings Renderer[K, CanvasRC]
+            |import org.nspl.svgrenderer.*      // for Plot.svg;    brings Renderer[K, SvgRC]
             |import lui.plot.*""".stripMargin
+      ),
+      PageTemplate.paragraph(
+        "Importing both renderer packages at file scope produces ambiguous `defaultFont` and " +
+          "`defaultGlyphMeasurer` implicits — they live in both. Pick one per scope, or use " +
+          "local imports inside the demo block (as this docs page does)."
       )
     ),
 
-    PageTemplate.section("Why Plot.of(initial)")(
+    PageTemplate.section("Why Plot.canvas(initial) / Plot.svg(initial)")(
       PageTemplate.paragraph(
         "nspl plot types are long compound types like Elems3[XYPlotArea[...], TextBox, ...]. You don't " +
-          "want to write them out. `Plot.of(build)` captures the K via type inference and returns a bundle " +
-          "of typed props paired with a factory — the K stays hidden inside the bundle."
+          "want to write them out. `Plot.canvas(build)` (or `Plot.svg(build)`) captures the K via type " +
+          "inference and returns a bundle of typed props paired with a factory — the K stays hidden " +
+          "inside the bundle. Both bundles expose the same prop API; the only thing that differs is " +
+          "which implicit renderer must be in scope."
       )
     ),
 
     // -------------------------------------------------------------------------
     PageTemplate.section("Static line plot")(
       PageTemplate.codedDemo(
-        "Plot.of(build)(...)",
+        "Plot.canvas(build)(...)",
         """val data  = (0 to 100).map(i => (i.toDouble, math.sin(i * 0.2)))
           |val build = xyplot(data -> line())(par.xlab("i").ylab("sin"))
-          |val P = Plot.of(build)
+          |val P = Plot.canvas(build)
           |P(P.width := 600, P.height := 240)""".stripMargin
       )({
+        import org.nspl.canvasrenderer.*
         val data = (0 to 100).map(i => (i.toDouble, math.sin(i * 0.2)))
         val build = xyplot(data -> line())(par.xlab("i").ylab("sin"))
-        val P = Plot.of(build)
+        val P = Plot.canvas(build)
+        P(P.width := 600, P.height := 240)
+      })
+    ),
+
+    // -------------------------------------------------------------------------
+    PageTemplate.section("SVG backend")(
+      PageTemplate.paragraph(
+        "Same prop API as Plot.canvas, but renders into an <svg> with one DOM node per shape. " +
+          "Use when you need vector output (clean print, copy-paste into Illustrator/Figma) or " +
+          "screen-reader-friendly DOM. Slower past a few hundred shapes."
+      ),
+      PageTemplate.codedDemo(
+        "Plot.svg(build)",
+        """import org.nspl.svgrenderer.*    // brings Renderer[K, SvgRC]
+          |
+          |val data  = (0 to 80).map(i => (i.toDouble, math.cos(i * 0.15)))
+          |val build = xyplot(data -> line())(par.xlab("i").ylab("cos"))
+          |val P = Plot.svg(build)
+          |P(P.width := 600, P.height := 240)""".stripMargin
+      )({
+        import org.nspl.svgrenderer.*
+        val data = (0 to 80).map(i => (i.toDouble, math.cos(i * 0.15)))
+        val build = xyplot(data -> line())(par.xlab("i").ylab("cos"))
+        val P = Plot.svg(build)
         P(P.width := 600, P.height := 240)
       })
     ),
@@ -75,7 +107,7 @@ object PlotPages {
           |  (rng.nextGaussian(), rng.nextGaussian())
           |}
           |val build = xyplot(data -> point(size = 6d, noIdentifier = false))(par.xlab("x").ylab("y"))
-          |val P = Plot.of(build)
+          |val P = Plot.canvas(build)
           |
           |def describe(id: Identifier): String = id match {
           |  case DataRowIdx(_, _, row) =>
@@ -100,13 +132,14 @@ object PlotPages {
           |  span(typo.hint, child.text <-- msg.signal)
           |)""".stripMargin
       )({
+        import org.nspl.canvasrenderer.*
         val msg = Var("Hover over a point…")
         val data = (1 to 60).map { i =>
           val rng = new scala.util.Random(i)
           (rng.nextGaussian(), rng.nextGaussian())
         }
         val build = xyplot(data -> point(size = 6d, noIdentifier = false))(par.xlab("x").ylab("y"))
-        val P = Plot.of(build)
+        val P = Plot.canvas(build)
 
         def describe(id: Identifier): String = id match {
           case DataRowIdx(_, _, row) =>
@@ -149,20 +182,21 @@ object PlotPages {
           |  xyplot(data -> line())(par.xlab("i").ylab("sin"))
           |}
           |val buildSignal = freq.signal.map(buildFor)
-          |val P = Plot.of(buildFor(freq.now()))
+          |val P = Plot.canvas(buildFor(freq.now()))
           |
           |div(
           |  Slider(Slider.value <--> freq, Slider.min := 0.05, Slider.max := 0.5, Slider.step := 0.01),
           |  P(P.width := 600, P.height := 240, P.build <-- buildSignal)
           |)""".stripMargin
       )({
+        import org.nspl.canvasrenderer.*
         val freq = Var(0.2)
         def buildFor(f: Double) = {
           val data = (0 to 100).map(i => (i.toDouble, math.sin(i * f)))
           xyplot(data -> line())(par.xlab("i").ylab("sin"))
         }
         val buildSignal = freq.signal.map(buildFor)
-        val P = Plot.of(buildFor(freq.now()))
+        val P = Plot.canvas(buildFor(freq.now()))
         div(
           stack.col(spacing.md) ++ css.alignItems("flex-start"),
           div(
@@ -177,14 +211,14 @@ object PlotPages {
     ),
 
     PageTemplate.behavior(
-      "Plot.of(initial) captures K by type inference; the bundle's apply(...) creates the canvas and queues the first paint via requestAnimationFrame.",
+      "Plot.canvas(initial) captures K by type inference; the bundle's apply(...) creates the canvas and queues the first paint via requestAnimationFrame.",
       "Width and height are read once at construction. Binding a Signal to them works, but only the initial value is honored — resizing requires recreating the plot.",
       "Callbacks (click, hover, unhover, shapeClick, select) fire at the browser's mousemove / mouseup rate, coalesced to one event per rAF frame. Keep observers cheap.",
       "P.build <-- src feeds new builds into nspl's rAF updater. Multiple updates within one frame coalesce."
     ),
 
     PageTemplate.propsTable(
-      ("build",           "InOut[Build[K]]",                 "Stream of plot data. Initial value comes from Plot.of(initial)."),
+      ("build",           "InOut[Build[K]]",                 "Stream of plot data. Initial value comes from Plot.canvas(initial)."),
       ("width",           "In[Int]",                         "Canvas width. Read once at construction."),
       ("height",          "In[Int]",                         "Canvas height. Read once at construction."),
       ("enableScroll",    "In[Boolean]",                     "Wheel-to-zoom on the plot area."),

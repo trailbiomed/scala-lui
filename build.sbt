@@ -68,7 +68,8 @@ lazy val plot = (project in file("plot"))
   .dependsOn(core, components)
   .settings(
     name := "lui-plot",
-    libraryDependencies += "io.github.pityka" %%% "nspl-canvas-js" % "0.17.0"
+    libraryDependencies += "io.github.pityka" %%% "nspl-canvas-js" % "0.18.0",
+    libraryDependencies += "io.github.pityka" %%% "nspl-svg-js" % "0.18.0",
   )
 
 // Demo app. Not published.
