@@ -3,7 +3,7 @@ package example
 import com.raquo.laminar.api.L.{Mod as _, *}
 import org.scalajs.dom
 import lui.*
-import lui.components.{Button, Toast}
+import lui.components.{Button, ThemePicker, Toast}
 import lui.style.*
 import example.pages.CoffeeMachinePage
 
@@ -93,12 +93,7 @@ private def Header(slug: Var[String]): HtmlElement =
       stack.row(spacing.md) ++ css.alignItems("center"),
       headerLink("Docs",   slug, DocsIndex.firstSlug, isDocs = true),
       headerLink("Coffee demo", slug, CoffeeSlug, isDocs = false),
-      Button(
-        Button.label <-- Theme.signal.map(t => if (t.isDark) "☀ light" else "☾ dark"),
-        Button.variant := Button.Variant.Ghost,
-        Button.size := Button.Size.Small,
-        Button.click.foreach(_ => Theme.toggle())
-      )
+      ThemePicker()
     )
   )
 
