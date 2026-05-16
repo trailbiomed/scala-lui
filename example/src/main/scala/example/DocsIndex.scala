@@ -11,7 +11,8 @@ object DocsIndex {
   val categories: Seq[DocCategory] = Seq(
     DocCategory("Getting started", Seq(
       DocEntry("overview",        "Overview",         () => OverviewPage()),
-      DocEntry("getting-started", "Getting started",  () => GettingStartedPage())
+      DocEntry("getting-started", "Getting started",  () => GettingStartedPage()),
+      DocEntry("component-model", "Component model",  () => ComponentModelPage())
     )),
     DocCategory("Foundations", Seq(
       DocEntry("theme",       "Theme tokens",     () => FoundationsPages.theme()),
