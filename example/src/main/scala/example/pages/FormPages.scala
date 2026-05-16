@@ -2,10 +2,148 @@ package example.pages
 
 import com.raquo.laminar.api.L.{Mod as _, *}
 import example.PageTemplate
+import lui.*
 import lui.style.*
 import lui.components.*
 
 object FormPages {
+
+  def calendar(): HtmlElement = PageTemplate(
+    title = "Calendar",
+    summary = "Month-grid date selector. Pure presentation — no popover, no trigger. " +
+      "Wrap with `DatePicker` for the click-to-open behavior."
+  )(
+    PageTemplate.section("Two-way binding")(
+      PageTemplate.codedDemo(
+        "Calendar.value <-->",
+        """val picked = Var[Option[Day]](None)
+          |Calendar(Calendar.value <--> picked)""".stripMargin
+      )({
+        val picked = Var[Option[Day]](Some(Day.today))
+        div(
+          stack.col(spacing.md) ++ css.alignItems("flex-start"),
+          Calendar(Calendar.value <--> picked),
+          span(typo.hint, child.text <-- picked.signal.map(o => s"value = ${o.map(_.iso).getOrElse("None")}"))
+        )
+      })
+    ),
+    PageTemplate.section("Bounded range + custom predicate")(
+      PageTemplate.codedDemo(
+        "min / max / disabledFn",
+        """val picked = Var[Option[Day]](None)
+          |Calendar(
+          |  Calendar.value <--> picked,
+          |  Calendar.min := Some(Day.today.addDays(-7)),
+          |  Calendar.max := Some(Day.today.addDays(21)),
+          |  // disable weekends:
+          |  Calendar.disabledFn := (d => d.dayOfWeekMon >= 5)
+          |)""".stripMargin
+      )({
+        val picked = Var[Option[Day]](None)
+        Calendar(
+          Calendar.value <--> picked,
+          Calendar.min := Some(Day.today.addDays(-7)),
+          Calendar.max := Some(Day.today.addDays(21)),
+          Calendar.disabledFn := ((d: Day) => d.dayOfWeekMon >= 5)
+        )
+      })
+    ),
+    PageTemplate.section("Sunday-first week")(
+      PageTemplate.codedDemo(
+        "weekStart := 0",
+        """Calendar(Calendar.value <--> picked, Calendar.weekStart := 0)""".stripMargin
+      )({
+        val picked = Var[Option[Day]](None)
+        Calendar(Calendar.value <--> picked, Calendar.weekStart := 0)
+      })
+    ),
+    PageTemplate.behavior(
+      "Today is outlined with the brand color (no fill). The selected date fills with brand color.",
+      "Out-of-month days are dimmed but clickable; clicking jumps to that month and selects.",
+      "min/max bound the selectable range. disabledFn is an extra predicate on top of that.",
+      "Set bordered := false when embedding inside another bordered container (e.g. a Popover). DatePicker does this automatically."
+    ),
+    PageTemplate.propsTable(
+      ("value",      "InOut[Option[Day]]",    "Selected date. None means nothing selected."),
+      ("month",      "InOut[Day]",            "Pivot date (year + month displayed). Two-way so the parent can navigate."),
+      ("weekStart",  "In[Int]",               "0 = Sunday-first, 1 = Monday-first (default)."),
+      ("min",        "In[Option[Day]]",       "Earliest selectable date, inclusive."),
+      ("max",        "In[Option[Day]]",       "Latest selectable date, inclusive."),
+      ("disabledFn", "In[Day => Boolean]",    "Extra predicate; days returning true are dim and unclickable."),
+      ("bordered",   "In[Boolean]",           "Draw the outer border + radius. Default true.")
+    )
+  )
+
+  def datePicker(): HtmlElement = PageTemplate(
+    title = "DatePicker",
+    summary = "Click-to-open date input. Trigger displays the value (or placeholder); the popover hosts a Calendar."
+  )(
+    PageTemplate.section("Two-way binding")(
+      PageTemplate.codedDemo(
+        "DatePicker.value <-->",
+        """val due = Var[Option[Day]](None)
+          |DatePicker(
+          |  DatePicker.value <--> due,
+          |  DatePicker.placeholder := "Pick a date…"
+          |)""".stripMargin
+      )({
+        val due = Var[Option[Day]](None)
+        div(
+          stack.col(spacing.md) ++ css.alignItems("flex-start"),
+          DatePicker(
+            DatePicker.value <--> due,
+            DatePicker.placeholder := "Pick a date…"
+          ),
+          span(typo.hint, child.text <-- due.signal.map(o => s"value = ${o.map(_.iso).getOrElse("None")}"))
+        )
+      })
+    ),
+    PageTemplate.section("Bounded range")(
+      PageTemplate.codedDemo(
+        "min / max",
+        """DatePicker(
+          |  DatePicker.value <--> due,
+          |  DatePicker.min := Some(Day.today),
+          |  DatePicker.max := Some(Day.today.addDays(30))
+          |)""".stripMargin
+      )({
+        val due = Var[Option[Day]](None)
+        DatePicker(
+          DatePicker.value <--> due,
+          DatePicker.min := Some(Day.today),
+          DatePicker.max := Some(Day.today.addDays(30))
+        )
+      })
+    ),
+    PageTemplate.section("Disabled")(
+      PageTemplate.codedDemo(
+        "DatePicker.disabled := true",
+        """DatePicker(
+          |  DatePicker.value := Some(Day.today),
+          |  DatePicker.disabled := true
+          |)""".stripMargin
+      )(
+        DatePicker(
+          DatePicker.value := Some(Day.today),
+          DatePicker.disabled := true
+        )
+      )
+    ),
+    PageTemplate.behavior(
+      "Selecting a day in the popover writes through to value and closes the popover.",
+      "Opening the popover jumps the calendar to the month of the current value, or today's month if value is None.",
+      "min / max are forwarded to the wrapped Calendar.",
+      "The trigger shows the ISO date (YYYY-MM-DD) when there's a value; otherwise it shows the placeholder dimmed."
+    ),
+    PageTemplate.propsTable(
+      ("value",       "InOut[Option[Day]]", "Selected date."),
+      ("placeholder", "In[String]",         "Trigger text when value is None. Default \"YYYY-MM-DD\"."),
+      ("disabled",    "In[Boolean]",        "Disable the trigger button."),
+      ("width",       "In[Length]",         "Trigger width. Default 180px."),
+      ("min",         "In[Option[Day]]",    "Earliest selectable date."),
+      ("max",         "In[Option[Day]]",    "Latest selectable date.")
+    )
+  )
 
   def textInput(): HtmlElement = PageTemplate(
     title = "TextInput",

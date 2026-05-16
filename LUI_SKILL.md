@@ -74,7 +74,7 @@ type="module">` pointing at the linker output. No stylesheet links.
 
 | Package | Purpose |
 |---|---|
-| `lui` | `Component`, `ComponentFactory`, `Prop` (props DSL), `Interactive`, `Device` |
+| `lui` | `Component`, `ComponentFactory`, `Prop` (props DSL), `Interactive`, `Device`, `Day` |
 | `lui.style` | `Theme`, `palette`, `spacing`, `radius`, `fontSizes`, `breakpoints`, `Length`, `Color`, `css.*` builders, `Style`, `ThemedStyle`, `themed()`, `stack.*`, `typo.*`, `surface.*`, `reset.install()` |
 | `lui.components` | All UI components (`Button`, `TextInput`, `Modal`, …) |
 
@@ -636,6 +636,8 @@ Two shapes of component exist:
 | `Slider` | `value:inOut[Double]`, `min:in`, `max:in`, `step:in`, `disabled:in`, `width:in` | Pointer-driven, no `<input range>`. |
 | `Field` | `label:in`, `hint:in`, `error:in`, `required:in`, `control(slot)` | Form scaffold; pass the input via `Field.control(...)`. |
 | `Fieldset` | `legend:in`, `hint:in`, `body(slot)` | |
+| `Calendar` | `value:inOut[Option[Day]]`, `month:inOut[Day]`, `weekStart:in (0=Sun, 1=Mon)`, `min:in[Option[Day]]`, `max:in[Option[Day]]`, `disabledFn:in[Day => Boolean]`, `bordered:in` | Month-grid date selector. No popover — pure presentation. `weekStart` defaults to 1 (Mon-first). |
+| `DatePicker` | `value:inOut[Option[Day]]`, `placeholder:in`, `disabled:in`, `width:in`, `min:in[Option[Day]]`, `max:in[Option[Day]]` | Click-to-open date input; built on `Popover` + `Calendar`. Trigger shows the ISO date or placeholder. |
 
 ### Disclosure
 
@@ -883,6 +885,27 @@ flex/grid (`SimpleGrid.autoFit`, `Wrap`) when possible.
 Other Theme members: `t.name: String`, `t.isDark: Boolean`. Global control
 via `Theme.current: Var[Theme]`, `Theme.signal: Signal[Theme]`,
 `Theme.setLight()` / `Theme.setDark()` / `Theme.toggle()`.
+
+### `Day` — calendar date primitive
+
+A small case class `Day(year, month, day)` in the root `lui` package. Used by
+`Calendar` and `DatePicker`. No `java.time` polyfill — `js.Date` does the heavy
+lifting internally.
+
+| Member | Effect |
+|---|---|
+| `Day(y, m, d)` | Constructor. `month` is 1..12, `day` is 1..31. |
+| `Day.today` | Today in local time. |
+| `Day.ofEpochDay(n)` | From days-since-1970-01-01. |
+| `Day.fromIso("YYYY-MM-DD")` | Parse; returns `Option[Day]`. |
+| `Day.daysInMonth(y, m)` | Static helper; respects leap years. |
+| `Day.monthNames`, `Day.monthShort`, `Day.weekdaysMon`, `Day.weekdaysSun` | Label vectors. |
+| `.iso` | `"YYYY-MM-DD"`. |
+| `.daysInMonth`, `.firstOfMonth` | |
+| `.dayOfWeekMon` (0=Mon..6=Sun), `.dayOfWeekSun` (0=Sun..6=Sat) | |
+| `.addDays(n)`, `.addMonths(n)` | `addMonths` clamps day-of-month to the new month's length. |
+| `.toEpochDay` | Days since 1970-01-01. |
+| Extends `Ordered[Day]` | `<`, `>`, `compare` work directly. |
 
 ### Enums
 

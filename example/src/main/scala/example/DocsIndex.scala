@@ -81,7 +81,9 @@ object DocsIndex {
       DocEntry("toggle",             "Toggle",            () => FormPages.toggle()),
       DocEntry("slider",             "Slider",            () => FormPages.slider()),
       DocEntry("field",              "Field",             () => FormPages.field()),
-      DocEntry("fieldset",           "Fieldset",          () => FormPages.fieldset())
+      DocEntry("fieldset",           "Fieldset",          () => FormPages.fieldset()),
+      DocEntry("calendar",           "Calendar",          () => FormPages.calendar()),
+      DocEntry("date-picker",        "DatePicker",        () => FormPages.datePicker())
     )),
     DocCategory("Data display", Seq(
       DocEntry("avatar",         "Avatar",        () => DataDisplayPages.avatar()),

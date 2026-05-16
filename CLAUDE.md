@@ -56,6 +56,8 @@ devserver/                             ~80-line JDK HttpServer subproject
 
 ```
 
+Add new components both tothe example/ documentation page and to the LUI_SKILL.md machine readable markdown file.
+
 ## Component contract (the load-bearing pattern)
 
 Every component looks like this — five concerns, in order:
