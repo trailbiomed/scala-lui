@@ -748,6 +748,7 @@ Two shapes of component exist:
 
 | Component | Props (kind) |
 |---|---|
+| `Navbar` | `sticky:in (Boolean, default true)`, `bordered:in (Boolean, default true)`, `variant:in (Solid/Subtle/Transparent, default Solid)`, `size:in (Sm/Md/Lg, default Md)`, `start(slot)`, `center(slot)`, `end(slot)` |
 | `PageHeader` | `title:in`, `back:in`, `onBack:out`, `right(slot)` |
 | `SectionLabel` | `text:in` |
 | `MetricCell` | `value:in`, `score:in`, `bar:in[Option[Double]]`, `state:in (Idle/Active/Running/Queued)`, `click:out` |

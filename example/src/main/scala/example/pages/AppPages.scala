@@ -7,6 +7,135 @@ import lui.components.*
 
 object AppPages {
 
+  def navbar(): HtmlElement = PageTemplate(
+    title = "Navbar",
+    summary = "Application navigation bar with start, center, and end slots. Supports solid/subtle/transparent variants, three sizes, optional border, and sticky positioning."
+  )(
+    PageTemplate.section("Demo")(
+      PageTemplate.codedDemo(
+        "Navbar",
+        """Navbar(
+          |  Navbar.start(
+          |    span(typo.h2, "lui"),
+          |    span(typo.muted, "/ console")
+          |  ),
+          |  Navbar.center(
+          |    Button(Button.label := "Docs",    Button.variant := Button.Variant.Ghost, Button.size := Button.Size.Small),
+          |    Button(Button.label := "Recipes", Button.variant := Button.Variant.Ghost, Button.size := Button.Size.Small),
+          |    Button(Button.label := "Blog",    Button.variant := Button.Variant.Ghost, Button.size := Button.Size.Small)
+          |  ),
+          |  Navbar.end(
+          |    Button(Button.label := "Sign in", Button.variant := Button.Variant.Primary, Button.size := Button.Size.Small),
+          |    Avatar(Avatar.name := "Ada Lovelace", Avatar.size := Avatar.Size.Sm)
+          |  )
+          |)""".stripMargin
+      )(
+        Navbar(
+          Navbar.sticky := false,
+          Navbar.start(
+            span(typo.h2 ++ css.margin(Length.px(0)), "lui"),
+            span(typo.muted, "/ console")
+          ),
+          Navbar.center(
+            Button(Button.label := "Docs",    Button.variant := Button.Variant.Ghost, Button.size := Button.Size.Small),
+            Button(Button.label := "Recipes", Button.variant := Button.Variant.Ghost, Button.size := Button.Size.Small),
+            Button(Button.label := "Blog",    Button.variant := Button.Variant.Ghost, Button.size := Button.Size.Small)
+          ),
+          Navbar.end(
+            Button(Button.label := "Sign in", Button.variant := Button.Variant.Primary, Button.size := Button.Size.Small),
+            Avatar(Avatar.name := "Ada Lovelace", Avatar.size := Avatar.Size.Sm)
+          )
+        )
+      )
+    ),
+    PageTemplate.section("Variants")(
+      PageTemplate.codedDemo(
+        "Solid (default)",
+        """Navbar(Navbar.variant := Navbar.Variant.Solid, …)"""
+      )(
+        Navbar(
+          Navbar.sticky := false,
+          Navbar.variant := Navbar.Variant.Solid,
+          Navbar.start(span(typo.h2 ++ css.margin(Length.px(0)), "Solid")),
+          Navbar.end(Button(Button.label := "Action", Button.size := Button.Size.Small))
+        )
+      ),
+      PageTemplate.codedDemo(
+        "Subtle",
+        """Navbar(Navbar.variant := Navbar.Variant.Subtle, …)"""
+      )(
+        Navbar(
+          Navbar.sticky := false,
+          Navbar.variant := Navbar.Variant.Subtle,
+          Navbar.start(span(typo.h2 ++ css.margin(Length.px(0)), "Subtle")),
+          Navbar.end(Button(Button.label := "Action", Button.size := Button.Size.Small))
+        )
+      ),
+      PageTemplate.codedDemo(
+        "Transparent",
+        """Navbar(Navbar.variant := Navbar.Variant.Transparent, Navbar.bordered := false, …)"""
+      )(
+        Navbar(
+          Navbar.sticky := false,
+          Navbar.variant := Navbar.Variant.Transparent,
+          Navbar.bordered := false,
+          Navbar.start(span(typo.h2 ++ css.margin(Length.px(0)), "Transparent")),
+          Navbar.end(Button(Button.label := "Action", Button.size := Button.Size.Small))
+        )
+      )
+    ),
+    PageTemplate.section("Sizes")(
+      PageTemplate.codedDemo(
+        "Sm / Md / Lg",
+        """Navbar(Navbar.size := Navbar.Size.Sm, …)
+          |Navbar(Navbar.size := Navbar.Size.Md, …)
+          |Navbar(Navbar.size := Navbar.Size.Lg, …)""".stripMargin
+      )(
+        div(stack.col(spacing.md),
+          Navbar(
+            Navbar.sticky := false,
+            Navbar.size := Navbar.Size.Sm,
+            Navbar.start(span(typo.label, "Sm — 48px"))
+          ),
+          Navbar(
+            Navbar.sticky := false,
+            Navbar.size := Navbar.Size.Md,
+            Navbar.start(span(typo.label, "Md — 56px"))
+          ),
+          Navbar(
+            Navbar.sticky := false,
+            Navbar.size := Navbar.Size.Lg,
+            Navbar.start(span(typo.label, "Lg — 64px"))
+          )
+        )
+      )
+    ),
+    PageTemplate.section("Minimal — brand + actions only")(
+      PageTemplate.codedDemo(
+        "Navbar (no center)",
+        """Navbar(
+          |  Navbar.start(span(typo.h2, "lui")),
+          |  Navbar.end(ThemePicker())
+          |)""".stripMargin
+      )(
+        Navbar(
+          Navbar.sticky := false,
+          Navbar.start(span(typo.h2 ++ css.margin(Length.px(0)), "lui")),
+          Navbar.end(ThemePicker())
+        )
+      )
+    ),
+    PageTemplate.propsTable(
+      ("sticky",   "Boolean",                       "Pin to top of viewport (position: sticky). Defaults to true."),
+      ("bordered", "Boolean",                       "Show a bottom border. Defaults to true."),
+      ("variant",  "Solid | Subtle | Transparent",  "Background treatment. Solid uses surface + shadow, Subtle uses surfaceDim, Transparent is transparent."),
+      ("size",     "Sm | Md | Lg",                  "Bar height (48 / 56 / 64 px)."),
+      ("start",    "Slot",                          "Left content. Use for brand / logo."),
+      ("center",   "Slot",                          "Center content. Use for primary navigation."),
+      ("end",      "Slot",                          "Right content. Use for actions and account.")
+    )
+  )
+
   def pageHeader(): HtmlElement = PageTemplate(
     title = "PageHeader",
     summary = "Top-of-page bar with title, an optional back link, and a right-aligned actions slot."
