@@ -75,6 +75,17 @@ class NewComponentsSuite extends E2ESuite {
     page.locator("[role='tab'][aria-selected='true']:has-text('Contradictions')").first().waitFor()
   }
 
+  test("TabPanel Stable layout overlaps panels (all have same offsetTop)") {
+    gotoSlug("tab-panel")
+    page.locator("[role='tabpanel']").first().waitFor()
+    val tops = page.evaluate(
+      """() => Array.from(document.querySelectorAll("[role='tabpanel']"))
+        |  .map(p => p.offsetTop)""".stripMargin
+    ).asInstanceOf[java.util.List[_]]
+    val list = scala.jdk.CollectionConverters.ListHasAsScala(tops).asScala.map(_.asInstanceOf[Number].intValue()).toList
+    assert(list.distinct.size == 1, s"expected all tabpanels to share offsetTop in Stable mode, got $list")
+  }
+
   // -- Show.Mode.Visibility ----------------------------------------------
 
   test("Show with Mode.Visibility keeps layout space when hidden") {

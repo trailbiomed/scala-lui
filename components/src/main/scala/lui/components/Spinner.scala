@@ -23,36 +23,42 @@ object Spinner extends ComponentFactory[Spinner] {
     val angle: Var[Int] = Var(0)
     var handle: js.UndefOr[SetIntervalHandle] = js.undefined
 
+    def clear(): Unit = {
+      handle.foreach(js.timers.clearInterval)
+      handle = js.undefined
+    }
+    def start(): Unit = {
+      if (handle.isEmpty && !Device.reducedMotion.now()) {
+        handle = js.timers.setInterval(33.0) {
+          angle.update(a => (a + 12) % 360)
+        }
+      }
+    }
+
     root.amend(
-      Signal.combine(el.sizeVar.signal, angle.signal).styled { case (t, (sz, a)) =>
-        css.raw("display", "inline-block") ++
-          css.width(sz) ++
-          css.height(sz) ++
-          css.raw("border-radius", "50%") ++
-          css.border(Length.px(2), BorderStyle.Solid, t.surfaceDim) ++
-          css.raw("border-top-color", t.brand.toCss) ++
-          css.raw("transform", s"rotate(${a}deg)")
-      },
+      Signal
+        .combine(el.sizeVar.signal, angle.signal, Device.reducedMotion)
+        .styled { case (t, (sz, a, reduce)) =>
+          if (reduce) {
+            css.display(Display.None)
+          } else {
+            css.raw("display", "inline-block") ++
+              css.width(sz) ++
+              css.height(sz) ++
+              css.raw("border-radius", "50%") ++
+              css.border(Length.px(2), BorderStyle.Solid, t.surfaceDim) ++
+              css.raw("border-top-color", t.brand.toCss) ++
+              css.raw("transform", s"rotate(${a}deg)")
+          }
+        },
       aria.label := "Loading",
       role := "status",
-      // Reduced-motion users get a static ring (no rotation interval). The
-      // `role=status` + `aria-label` still communicates "busy" to AT.
       Device.reducedMotion --> Observer[Boolean] { reduce =>
-        if (reduce) {
-          handle.foreach(js.timers.clearInterval)
-          handle = js.undefined
-        } else if (handle.isEmpty) {
-          handle = js.timers.setInterval(33.0) {
-            angle.update(a => (a + 12) % 360)
-          }
-        }
+        if (reduce) clear() else start()
       },
       onMountUnmountCallback(
-        mount = _ => (),
-        unmount = _ => {
-          handle.foreach(js.timers.clearInterval)
-          handle = js.undefined
-        }
+        mount = _ => start(),
+        unmount = _ => clear()
       )
     )
 

@@ -126,14 +126,13 @@ object TabPanel extends ComponentFactory[TabPanel] {
             case Layout.Stable =>
               panels.iterator.map { p =>
                 val isActive = p.key == activeKey
+                val visibilityDecls =
+                  if (isActive) css.raw("visibility", "visible") ++ css.pointerEvents("auto")
+                  else css.raw("visibility", "hidden") ++ css.pointerEvents("none")
                 div(
                   role := "tabpanel",
                   aria.label := p.label,
-                  css.gridColumn("1") ++ css.gridRow("1"),
-                  if (isActive)
-                    css.raw("visibility", "visible") ++ css.pointerEvents("auto")
-                  else
-                    css.raw("visibility", "hidden") ++ css.pointerEvents("none"),
+                  css.gridColumn("1") ++ css.gridRow("1") ++ visibilityDecls,
                   p.content
                 )
               }.toList
@@ -147,7 +146,7 @@ object TabPanel extends ComponentFactory[TabPanel] {
     )
 
     val root = div(
-      stack.col(spacing.lg),
+      stack.col(spacing.md),
       panelsVar.signal.changes
         .withCurrentValueOf(activeVar.signal)
         .collect {
