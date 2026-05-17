@@ -23,6 +23,7 @@ license: MIT
 4. always prefer built-in lui components, design tokens, and other abstractions whenever available.
 5. minimize the use of amend(), and set()
 6. laminar tag factories accept both Seq[Modifier[]] and Modifier[], no need for `val seq: Seq[Mod].. ; div(seq*)`
+7. minimize inline Observer[]{}, .now, .set, .update; prefer --> , contramap, filter, a bus
 
 ## Three constraints to keep in mind
 

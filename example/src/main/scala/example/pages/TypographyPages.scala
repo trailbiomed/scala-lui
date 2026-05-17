@@ -108,11 +108,43 @@ object TypographyPages {
         )
       )
     ),
+    PageTemplate.section("Scroll target (in-page anchor, no URL hash)")(
+      PageTemplate.codedDemo(
+        "Link.scrollTarget",
+        """Link(
+          |  Link.scrollTarget := "scroll-demo-target",
+          |  Link.variant      := Link.Variant.Chip,
+          |  Link.children("Jump to anchor")
+          |)
+          |// elsewhere on the page:
+          |div(idAttr := "scroll-demo-target", "I'm the target.")""".stripMargin
+      )(
+        div(stack.col(spacing.lg),
+          Link(
+            Link.scrollTarget := "scroll-demo-target",
+            Link.variant := Link.Variant.Chip,
+            Link.children("Jump to anchor below")
+          ),
+          div(themed(t => stack.col(spacing.md) ++ css.height(Length.px(180)) ++
+              css.background(t.surfaceDim) ++ css.borderRadius(radius.md) ++ css.padding(spacing.lg)),
+            span(typo.muted, "spacer space spacer"),
+            span(typo.muted, "spacer space spacer"),
+            span(typo.muted, "spacer space spacer")
+          ),
+          div(idAttr := "scroll-demo-target",
+            themed(t => css.background(t.brandSoft) ++ css.padding(spacing.lg) ++ css.borderRadius(radius.md)),
+            span(typo.label, "Target anchor — scrolled into view, no URL hash change.")
+          )
+        )
+      )
+    ),
     PageTemplate.propsTable(
-      ("href",     "String",            "Anchor target."),
-      ("external", "Boolean",           "If true, opens in a new tab with rel=noopener noreferrer."),
-      ("variant",  "Brand|Muted|Plain", "Color treatment."),
-      ("children", "Slot",              "Anchor content.")
+      ("href",         "String",                 "Anchor target."),
+      ("external",     "Boolean",                "If true, opens in a new tab with rel=noopener noreferrer."),
+      ("variant",      "Brand|Muted|Plain|Chip", "Color treatment."),
+      ("scrollTarget", "String",                 "Element id to scrollIntoView; preventDefaults the click so URL hash is unchanged."),
+      ("scrolled",     "Out[String]",            "Emits the target id after each scroll."),
+      ("children",     "Slot",                   "Anchor content.")
     )
   )
 

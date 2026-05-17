@@ -23,6 +23,15 @@ sbt devserver/run     # serves example/public/ on http://localhost:8080
 
 Compile-only check (useful when iterating without a browser): `sbt compile` or, when Metals MCP is connected, `mcp__metals__compile-full`.
 
+## Scala code style
+1. functional
+2. no inline comments, make code legible without comments, even for those comment never reference the state before your change
+3. braceful
+4. always prefer built-in lui components, design tokens, and other abstractions whenever available.
+5. minimize the use of amend(), and set()
+6. laminar tag factories accept both Seq[Modifier[]] and Modifier[], no need for `val seq: Seq[Mod].. ; div(seq*)`
+7. minimize inline Observer[]{}, .now, .set, .update; prefer --> , contramap, filter, a bus
+
 ## Project layout
 
 ```

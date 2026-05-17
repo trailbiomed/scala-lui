@@ -755,6 +755,103 @@ object FormPages {
     )
   )
 
+  def listEditor(): HtmlElement = PageTemplate(
+    title = "ListEditor",
+    summary = "Repeating-row editor for Var[Seq[String]] — focus preserved across add/remove."
+  )(
+    PageTemplate.section("Two-way binding")(
+      PageTemplate.codedDemo(
+        "ListEditor",
+        """val terms = Var(Seq("alpha", "beta"))
+          |ListEditor(
+          |  ListEditor.value      <--> terms,
+          |  ListEditor.placeholder := "name or name:description",
+          |  ListEditor.addLabel    := "+ Add term",
+          |  ListEditor.minRows     := 1
+          |)""".stripMargin
+      )({
+        val terms = Var(Seq("alpha", "beta"))
+        div(stack.col(spacing.md),
+          ListEditor(
+            ListEditor.value <--> terms,
+            ListEditor.placeholder := "name or name:description",
+            ListEditor.addLabel := "+ Add term"
+          ),
+          span(typo.hint, child.text <-- terms.signal.map(ts => s"value = [${ts.mkString(", ")}]"))
+        )
+      })
+    ),
+    PageTemplate.propsTable(
+      ("value",       "InOut[Seq[String]]", "Two-way binding."),
+      ("placeholder", "String",             "Placeholder shown in empty rows."),
+      ("addLabel",    "String",             "Label on the + Add button."),
+      ("minRows",     "Int",                "Minimum number of rows. Delete disabled at the floor."),
+      ("dropBlank",   "Boolean",            "If true, blank rows are filtered out of outbound emissions."),
+      ("width",       "Length",             "Width of the editor.")
+    )
+  )
+
+  def show(): HtmlElement = PageTemplate(
+    title = "Show",
+    summary = "Persistent show/hide wrapper. Mounts its content once; toggles between display:contents and either display:none (Layout, default) or visibility:hidden (Visibility, layout-preserving)."
+  )(
+    PageTemplate.section("Mode.Layout (default — content fully removed from layout when hidden)")(
+      PageTemplate.codedDemo(
+        "Show.visible",
+        """val on = Var(true)
+          |Show(
+          |  Show.visible <-- on.signal,
+          |  Show.content(span(typo.body, "I appear and disappear."))
+          |)""".stripMargin
+      )({
+        val on = Var(true)
+        div(stack.col(spacing.md),
+          div(stack.row(spacing.md) ++ css.alignItems("center"),
+            Toggle(Toggle.checked <--> on),
+            span(typo.hint, child.text <-- on.signal.map(if (_) "visible" else "hidden"))
+          ),
+          Show(
+            Show.visible <-- on.signal,
+            Show.content(span(typo.body, "I appear and disappear."))
+          )
+        )
+      })
+    ),
+    PageTemplate.section("Mode.Visibility (still occupies layout when hidden)")(
+      PageTemplate.codedDemo(
+        "Show.mode := Show.Mode.Visibility",
+        """Show(
+          |  Show.visible <-- on.signal,
+          |  Show.mode    := Show.Mode.Visibility,
+          |  Show.content(div(typo.body, "Reserved space."))
+          |)""".stripMargin
+      )({
+        val on = Var(false)
+        div(stack.col(spacing.md),
+          div(stack.row(spacing.md) ++ css.alignItems("center"),
+            Toggle(Toggle.checked <--> on),
+            span(typo.hint, child.text <-- on.signal.map(if (_) "visible" else "hidden (layout reserved)"))
+          ),
+          div(themed(t => stack.col(spacing.sm) ++ css.border(Length.px(1), BorderStyle.Dashed, t.border) ++ css.padding(spacing.md) ++ css.borderRadius(radius.sm)),
+            span(typo.muted, "↓ container holds Show below"),
+            Show(
+              Show.visible <-- on.signal,
+              Show.mode := Show.Mode.Visibility,
+              Show.content(div(themed(t => css.padding(spacing.md) ++ css.background(t.brandSoft) ++ css.borderRadius(radius.sm)),
+                "This panel reserves layout space even when hidden."))
+            ),
+            span(typo.muted, "↑ note the gap above stays the same size")
+          )
+        )
+      })
+    ),
+    PageTemplate.propsTable(
+      ("visible", "In[Boolean]",  "Visibility toggle."),
+      ("mode",    "In[Show.Mode]","Layout (default; display:none when hidden) or Visibility (visibility:hidden when hidden — keeps layout space)."),
+      ("content", "Slot",         "Children mounted once and kept across visibility flips.")
+    )
+  )
+
   def fieldset(): HtmlElement = PageTemplate(
     title = "Fieldset",
     summary = "Grouped fields with a legend."

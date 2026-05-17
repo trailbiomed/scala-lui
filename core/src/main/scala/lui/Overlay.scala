@@ -31,7 +31,7 @@ object Overlay {
     ).mkString(", ")
 
   /** Returns the in-DOM focusable descendants of `root`, filtered to those that
-    * are visible (offsetParent != null). Order follows DOM order. */
+    * are visible AND in the tab order. Order follows DOM order. */
   def focusables(root: dom.Element): Vector[dom.HTMLElement] = {
     val nodes = root.querySelectorAll(FocusableSelector)
     val out   = Vector.newBuilder[dom.HTMLElement]
@@ -39,9 +39,10 @@ object Overlay {
     while (i < nodes.length) {
       nodes.item(i) match {
         case el: dom.HTMLElement =>
-          // offsetParent is null when element is display:none — skip those.
+          val ti = el.getAttribute("tabindex")
+          val tabbable = ti != "-1"
           val visible = el.asInstanceOf[scala.scalajs.js.Dynamic].offsetParent != null
-          if (visible) out += el
+          if (tabbable && visible) out += el
         case _ => ()
       }
       i += 1

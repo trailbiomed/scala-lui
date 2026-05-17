@@ -86,6 +86,7 @@ object TextInput extends ComponentFactory[TextInput] {
       htmlValue <-- el.valueVar.signal,
       htmlPlaceholder <-- el.placeholderVar.signal,
       htmlDisabled <-- el.disabledVar.signal,
+      aria.invalid <-- el.invalidVar.signal.map(_.toString),
       onInput.mapToValue --> el.valueVar.writer,
       onFocus.mapTo(true) --> el.focused.writer,
       onBlur.mapTo(false) --> el.focused.writer

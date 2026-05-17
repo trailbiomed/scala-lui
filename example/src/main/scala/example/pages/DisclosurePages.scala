@@ -188,6 +188,56 @@ object DisclosurePages {
     )
   )
 
+  def tabPanel(): HtmlElement = PageTemplate(
+    title = "TabPanel",
+    summary = "Tabs strip + content bodies in one piece, with height-stable layout so clicks don't make the page jump."
+  )(
+    PageTemplate.section("Stable layout (default)")(
+      PageTemplate.codedDemo(
+        "TabPanel",
+        """val active = Var("claims")
+          |TabPanel(
+          |  TabPanel.active <--> active,
+          |  TabPanel.panel("claims",         "Claims (3)",         claimsBody),
+          |  TabPanel.panel("contradictions", "Contradictions (1)", contraBody),
+          |  TabPanel.panel("raw",            "Raw JSON",           rawBody),
+          |)""".stripMargin
+      )({
+        val active = Var("claims")
+        TabPanel(
+          TabPanel.active <--> active,
+          TabPanel.panel(
+            "claims",
+            "Claims (3)",
+            div(stack.col(spacing.sm),
+              span(typo.label, "Claim 1"), span(typo.body, "Short body"),
+              span(typo.label, "Claim 2"), span(typo.body, "Short body"),
+              span(typo.label, "Claim 3"), span(typo.body, "Short body")
+            )
+          ),
+          TabPanel.panel(
+            "contradictions",
+            "Contradictions (1)",
+            span(typo.muted, "One contradiction.")
+          ),
+          TabPanel.panel(
+            "raw",
+            "Raw JSON",
+            div(stack.col(spacing.md),
+              (1 to 12).map(i => span(typo.muted, s"line $i — placeholder content"))
+            )
+          )
+        )
+      })
+    ),
+    PageTemplate.propsTable(
+      ("active", "InOut[String]", "Active panel key. Defaults to first declared."),
+      ("variant", "In[Tabs.Variant]", "Strip variant: Underlined (default) or Pills."),
+      ("layout", "In[Layout]", "Stable (default; grid+visibility) or Swap (child <--)."),
+      ("panel(key, label, content)", "Mod", "Declare one panel; first declared is the default active.")
+    )
+  )
+
   def steps(): HtmlElement = PageTemplate(
     title = "Steps",
     summary = "Numbered horizontal progress stepper for multi-step flows."

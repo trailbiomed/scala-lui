@@ -83,7 +83,8 @@ object DocsIndex {
       DocEntry("field",              "Field",             () => FormPages.field()),
       DocEntry("fieldset",           "Fieldset",          () => FormPages.fieldset()),
       DocEntry("calendar",           "Calendar",          () => FormPages.calendar()),
-      DocEntry("date-picker",        "DatePicker",        () => FormPages.datePicker())
+      DocEntry("date-picker",        "DatePicker",        () => FormPages.datePicker()),
+      DocEntry("list-editor",        "ListEditor",        () => FormPages.listEditor())
     )),
     DocCategory("Data display", Seq(
       DocEntry("avatar",         "Avatar",        () => DataDisplayPages.avatar()),
@@ -107,7 +108,9 @@ object DocsIndex {
     DocCategory("Disclosure", Seq(
       DocEntry("accordion",   "Accordion",   () => DisclosurePages.accordion()),
       DocEntry("collapsible", "Collapsible", () => DisclosurePages.collapsible()),
+      DocEntry("show",        "Show",        () => FormPages.show()),
       DocEntry("tabs",        "Tabs",        () => DisclosurePages.tabs()),
+      DocEntry("tab-panel",   "TabPanel",    () => DisclosurePages.tabPanel()),
       DocEntry("breadcrumb",  "Breadcrumb",  () => DisclosurePages.breadcrumb()),
       DocEntry("pagination",  "Pagination",  () => DisclosurePages.pagination()),
       DocEntry("steps",       "Steps",       () => DisclosurePages.steps())

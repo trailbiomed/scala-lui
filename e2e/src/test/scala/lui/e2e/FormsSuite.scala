@@ -85,9 +85,7 @@ class FormsSuite extends E2ESuite {
 
   test("RadioGroup click changes which option is filled") {
     gotoSlug("radio-group")
-    // The first RadioGroup ("Vertical") has the option "Small" with initial value "medium".
-    // Clicking "Small" should change its styling (dot fills).
-    val smallOpt = page.locator("label:has-text('Small')")
+    val smallOpt = page.locator("[role='radio']:has-text('Small')").first()
     smallOpt.waitFor()
     val before = smallOpt.locator("span").first().getAttribute("style")
     smallOpt.click()

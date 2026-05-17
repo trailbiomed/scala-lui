@@ -30,6 +30,20 @@ object Mod {
   inline def apply[El <: Component](f: El => Unit): Mod[El] = f
 }
 
+/** A no-op `Modifier[HtmlElement]`. Useful for conditional modifiers in a `div(...)`
+  * literal where Scala 3 forbids mixing positional arguments with a `seq*` spread.
+  *
+  * {{{
+  *   div(
+  *     stack.col(spacing.md),
+  *     maybeValue.fold(noopMod)(v => SomeComponent(SomeComponent.x := v))
+  *   )
+  * }}}
+  */
+val noopMod: Modifier[HtmlElement] = new Modifier[HtmlElement] {
+  override def apply(el: HtmlElement): Unit = ()
+}
+
 /** Abstract companion that owns the `apply(mods*)` factory. Subclasses implement `build` to
   * construct the element (root + reactive defaults already amended); `apply` folds user
   * `Mod`s onto it and returns. Removes the `mods.foreach(_(el)); el` tail from every

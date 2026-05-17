@@ -67,7 +67,23 @@ object css {
   def padding(a: Length): Style = one("padding", a.toCss)
   def padding(v: Length, h: Length): Style = one("padding", s"${v.toCss} ${h.toCss}")
   def margin(a: Length): Style = one("margin", a.toCss)
+  def margin(v: Length, h: Length): Style = one("margin", s"${v.toCss} ${h.toCss}")
+  def margin(t: Length, r: Length, b: Length, l: Length): Style =
+    one("margin", s"${t.toCss} ${r.toCss} ${b.toCss} ${l.toCss}")
   def gap(l: Length): Style = one("gap", l.toCss)
+  def gap(row: Length, col: Length): Style = one("gap", s"${row.toCss} ${col.toCss}")
+  def rowGap(l: Length): Style = one("row-gap", l.toCss)
+  def columnGap(l: Length): Style = one("column-gap", l.toCss)
+
+  def gridTemplateColumns(spec: String): Style = one("grid-template-columns", spec)
+  def gridTemplateRows(spec: String): Style = one("grid-template-rows", spec)
+  def gridTemplateAreas(spec: String): Style = one("grid-template-areas", spec)
+  def gridColumn(spec: String): Style = one("grid-column", spec)
+  def gridRow(spec: String): Style = one("grid-row", spec)
+  def gridArea(spec: String): Style = one("grid-area", spec)
+  def gridAutoFlow(v: String): Style = one("grid-auto-flow", v)
+  def gridAutoColumns(spec: String): Style = one("grid-auto-columns", spec)
+  def gridAutoRows(spec: String): Style = one("grid-auto-rows", spec)
 
   // Borders
   def border(w: Length, st: BorderStyle, c: Color): Style =
