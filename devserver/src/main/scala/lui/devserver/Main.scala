@@ -25,6 +25,16 @@ object DevServer {
     "wasm" -> "application/wasm"
   )
 
+  /** Bind a static-file server. Returns the running server so the caller can
+   *  read the bound port (useful when `port == 0`) and stop it later. */
+  def serve(root: Path, port: Int, host: String = "0.0.0.0"): HttpServer = {
+    val server = HttpServer.create(new InetSocketAddress(host, port), 0)
+    server.createContext("/", ex => handle(root, ex))
+    server.setExecutor(null)
+    server.start()
+    server
+  }
+
   def start(args: Seq[String]): Unit = {
     val rootArg = args.headOption.getOrElse("example/public")
     val root = Paths.get(rootArg).toAbsolutePath.normalize
@@ -33,11 +43,8 @@ object DevServer {
       .orElse(args.drop(1).headOption)
       .map(_.toInt)
       .getOrElse(8080)
-    val server = HttpServer.create(new InetSocketAddress("0.0.0.0", port), 0)
-    server.createContext("/", ex => handle(root, ex))
-    server.setExecutor(null)
-    server.start()
-    println(s"dev server: http://localhost:$port  (serving $root)")
+    val server = serve(root, port)
+    println(s"dev server: http://localhost:${server.getAddress.getPort}  (serving $root)")
   }
 
   private def handle(root: Path, ex: HttpExchange): Unit = {
@@ -47,7 +54,6 @@ object DevServer {
       if (stripped.isEmpty) "index.html" else stripped
     }
     val resolved = root.resolve(rel).normalize
-    println(s"${ex.getRequestMethod} $rawPath")
     if (!resolved.startsWith(root)) {
       respond(ex, 403, "text/plain; charset=utf-8", "forbidden".getBytes("UTF-8"))
     } else if (!Files.isRegularFile(resolved)) {

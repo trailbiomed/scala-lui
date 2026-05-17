@@ -43,7 +43,7 @@ ThisBuild / scalacOptions ++= Seq(
 )
 
 lazy val root = (project in file("."))
-  .aggregate(core, components, plot, pkce, example, devserver)
+  .aggregate(core, components, plot, pkce, example, devserver, e2e)
   .settings(publish / skip := true)
 
 lazy val core = (project in file("core"))
@@ -105,4 +105,25 @@ lazy val devserver = (project in file("devserver"))
     publish / skip := true,
     fork := true,
     Compile / run / baseDirectory := (LocalRootProject / baseDirectory).value
+  )
+
+// JVM end-to-end suite. Boots the dev server in-process, drives the example
+// app through Playwright. Tests transitively require `example/fastLinkJS` so
+// the bundle is up to date before any browser navigation. Not published.
+lazy val e2e = (project in file("e2e"))
+  .dependsOn(devserver)
+  .settings(
+    publish / skip := true,
+    Test / fork := true,
+    // Suites share a single Playwright Browser via E2EFixture; running test
+    // classes concurrently can cause cross-test races (the dev server is
+    // shared too). Force sequential execution.
+    Test / parallelExecution := false,
+    Test / baseDirectory := (LocalRootProject / baseDirectory).value,
+    libraryDependencies ++= Seq(
+      "com.microsoft.playwright" % "playwright" % "1.49.0" % Test,
+      "org.scalameta"           %% "munit"      % "1.0.4"  % Test
+    ),
+    Test / test     := (Test / test).dependsOn(example / Compile / fastLinkJS).value,
+    Test / testOnly := (Test / testOnly).dependsOn(example / Compile / fastLinkJS).evaluated
   )

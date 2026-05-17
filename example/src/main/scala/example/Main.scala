@@ -137,6 +137,7 @@ private def Sidebar(slug: Var[String]): HtmlElement =
 private def navItem(entry: DocEntry, slug: Var[String]): HtmlElement = {
   val hovered = Var(false)
   div(
+    dataAttr("slug") := entry.slug,
     Signal.combine(slug.signal, hovered.signal).styled { case (t, (s, h)) =>
       val selected = s == entry.slug
       val (bg, fg) =
