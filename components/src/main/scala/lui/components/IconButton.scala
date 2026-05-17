@@ -77,7 +77,8 @@ object IconButton extends ComponentFactory[IconButton] {
         css.cursor(if (disabled) "not-allowed" else "pointer") ++
         css.raw("user-select", "none") ++
         css.raw("font-family", "inherit") ++
-        css.raw("line-height", "1")
+        css.raw("line-height", "1") ++
+        css.raw("outline", "none")
 
     val variantStyle = (v, disabled, i.hovered) match {
       case (_, true, _) =>
@@ -102,6 +103,10 @@ object IconButton extends ComponentFactory[IconButton] {
         css.background(Color.transparent) ++ css.color(t.textMuted) ++
           css.border(Length.px(1.5), BorderStyle.Solid, Color.transparent)
     }
-    base ++ variantStyle
+    val focusRing =
+      if (i.focused && !i.pressed && !disabled)
+        css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.35).toCss}")
+      else css.raw("box-shadow", "none")
+    base ++ variantStyle ++ focusRing
   }
 }

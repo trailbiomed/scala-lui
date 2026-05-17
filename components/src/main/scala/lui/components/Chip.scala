@@ -4,18 +4,14 @@ import com.raquo.laminar.api.L.{Mod as _, *}
 import lui.*
 import lui.style.*
 
-/** Pill-shaped toggle chip. Two visual states (idle / active) plus a
-  * hover affordance. Active state is owned by the caller — typically
-  * a parent maintains a `Var[T]` of "current selection" and feeds
-  * each chip an `active <-- currentSig.map(_ == thisValue)` binding;
-  * the chip emits clicks upward, the parent decides what to write.
+/** Pill-shaped toggle chip. Two visual states (idle / active) plus hover and
+  * focus affordances. Active state is owned by the caller — typically a
+  * parent maintains a `Var[T]` of "current selection" and feeds each chip an
+  * `active <-- currentSig.map(_ == thisValue)` binding; the chip emits clicks
+  * upward, the parent decides what to write.
   *
-  * Use for filter rows where each chip is one of a small fixed set
-  * (e.g. "All / Today / This week"), or for group-toggle pickers
-  * (e.g. "Group A / Group B").
-  *
-  * For a *multi-select* axis chip with a dropdown of values, build
-  * an app-specific component that wraps a Popover instead. */
+  * Renders as a native `<button>` so it participates in the tab order and
+  * Space/Enter activate it without extra handlers. */
 final class Chip private[components] (val root: HtmlElement) extends Component {
   private[components] val labelVar: Var[String]    = Var("")
   private[components] val activeVar: Var[Boolean]  = Var(false)
@@ -33,7 +29,7 @@ object Chip extends ComponentFactory[Chip] {
   val click    = Prop.out[Unit, Chip](_.clickBus)
 
   override protected def build: Chip = {
-    val root = div()
+    val root = button(typ := "button")
     val el = new Chip(root)
 
     val state = Signal.combine(el.activeVar.signal, el.disabledVar.signal, el.interact.state)
@@ -43,9 +39,10 @@ object Chip extends ComponentFactory[Chip] {
         val (active, disabled, i) = st
         styleFor(t, active, disabled, i)
       },
+      aria.pressed <-- el.activeVar.signal.map(_.toString),
       aria.disabled <-- el.disabledVar.signal,
       span(child.text <-- el.labelVar.signal),
-      onClick.mapToUnit.filter(_ => !el.disabledVar.now()) --> el.clickBus.writer,
+      onClick.preventDefault.mapToUnit.filter(_ => !el.disabledVar.now()) --> el.clickBus.writer,
     )
     el
   }
@@ -58,7 +55,9 @@ object Chip extends ComponentFactory[Chip] {
         css.borderRadius(radius.pill) ++
         css.cursor(if (disabled) "not-allowed" else "pointer") ++
         css.transition("background", 150) ++
-        css.selectNone
+        css.selectNone ++
+        css.raw("font-family", "inherit") ++
+        css.raw("outline", "none")
 
     val colors =
       if (disabled)
@@ -79,6 +78,11 @@ object Chip extends ComponentFactory[Chip] {
           css.color(t.text) ++
           css.border(Length.px(1), BorderStyle.Solid, t.border)
 
-    base ++ colors
+    val focusRing =
+      if (i.focused && !i.pressed && !disabled)
+        css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.3).toCss}")
+      else css.raw("box-shadow", "none")
+
+    base ++ colors ++ focusRing
   }
 }

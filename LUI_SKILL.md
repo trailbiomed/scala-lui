@@ -16,6 +16,14 @@ license: MIT
 (Scala.js). Use this skill when the project depends on `lui-components` (or
 `lui-core`) and you're writing app-level UI code.
 
+## Scala code style
+1. functional
+2. no inline comments, make code legible without comments
+3. braceful
+4. always prefer built-in lui components, design tokens, and other abstractions whenever available.
+5. minimize the use of amend(), and set()
+6. laminar tag factories accept both Seq[Modifier[]] and Modifier[], no need for `val seq: Seq[Mod].. ; div(seq*)`
+
 ## Three constraints to keep in mind
 
 1. **No external CSS.** No `.css` files, no `<style>` blocks, no class names.

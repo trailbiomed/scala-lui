@@ -39,11 +39,11 @@ class DataDisplayExtraSuite extends E2ESuite {
 
   test("Tag with removable := true renders an × close button") {
     gotoSlug("tag")
-    // 4 tags, only the last one is removable. The × span is a child of the
-    // last <span> Tag root.
+    // 4 tags, only the last one is removable. The × is now a <button> for
+    // a11y (focusable, keyboard-activatable, aria-labeled).
     val removableXCount = page.evaluate(
-      """() => Array.from(document.querySelectorAll('span'))
-        |  .filter(s => s.textContent === '×').length""".stripMargin
+      """() => Array.from(document.querySelectorAll('button'))
+        |  .filter(b => (b.textContent || '').trim() === '×').length""".stripMargin
     ).asInstanceOf[java.lang.Number].intValue()
     assert(removableXCount >= 1, s"expected at least one removable × button, found $removableXCount")
   }

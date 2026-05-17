@@ -39,13 +39,18 @@ private val CoffeeSlug = "coffee-machine"
 }
 
 private def App(slug: Var[String]): HtmlElement = {
+  // splitOne keys on coffee-vs-docs so docsView (which owns the Sidebar) is
+  // built exactly once and reused across slug changes within the docs section.
+  // Without this, every nav-item click rebuilds the sidebar from scratch and
+  // its `overflow-y: auto` scroll position jumps back to the top.
   div(
     css.raw("min-height", "100vh"),
     Header(slug),
-    child <-- slug.signal.map { s =>
-      if (s == CoffeeSlug) coffeeView()
-      else docsView(slug)
-    },
+    child <-- slug.signal
+      .splitOne(_ == CoffeeSlug) { (isCoffee, _, _) =>
+        if (isCoffee) coffeeView()
+        else docsView(slug)
+      },
     Toast()
   )
 }

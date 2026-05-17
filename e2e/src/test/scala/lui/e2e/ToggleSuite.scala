@@ -6,7 +6,7 @@ class ToggleSuite extends E2ESuite {
     gotoSlug("toggle")
     // Demo has three toggles in order: (1) initial=true, (2) initial=false, (3) disabled.
     // Pick the second one — starts unchecked, clickable.
-    val toggle = page.locator("label").nth(1)
+    val toggle = page.locator("[role='switch']").nth(1)
     toggle.waitFor()
     val thumbStyleBefore = toggle.locator("span").first().getAttribute("style")
     assert(

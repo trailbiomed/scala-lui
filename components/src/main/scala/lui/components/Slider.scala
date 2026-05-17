@@ -14,12 +14,19 @@ final class Slider private[components] (val root: HtmlElement) extends Component
   private[components] val disabledVar: Var[Boolean] = Var(false)
   private[components] val widthVar: Var[Length] = Var(Length.px(200))
   private[components] val dragging: Var[Boolean] = Var(false)
+  private[components] val focused: Var[Boolean] = Var(false)
 }
 
-/** Continuous-or-stepped numeric input rendered as a draggable thumb on a track. Avoids the
-  * native `<input type="range">` because its thumb styling requires `::-webkit-slider-thumb`
-  * pseudo-elements that can't be set inline. Pointer-driven; captures the pointer on
-  * mousedown so dragging works even when the cursor leaves the track. */
+/** Continuous-or-stepped numeric input rendered as a draggable thumb on a track.
+  *
+  * Keyboard support (when the thumb is focused):
+  *  - ArrowLeft/ArrowDown decrement by one step.
+  *  - ArrowRight/ArrowUp increment by one step.
+  *  - PageDown decrements by 10 × step.
+  *  - PageUp increments by 10 × step.
+  *  - Home/End jump to min/max.
+  *
+  * Exposes `role="slider"` with `aria-valuemin/-valuenow/-valuemax`. */
 object Slider extends ComponentFactory[Slider] {
 
   val value = Prop.inOut[Double, Slider](_.valueVar)
@@ -65,6 +72,14 @@ object Slider extends ComponentFactory[Slider] {
       }
     }
 
+    def stepBy(deltaSteps: Double): Unit = {
+      val lo = el.minVar.now()
+      val hi = el.maxVar.now()
+      val st = if (el.stepVar.now() > 0) el.stepVar.now() else (hi - lo) / 100.0
+      val nv = math.max(lo, math.min(hi, el.valueVar.now() + deltaSteps * st))
+      el.valueVar.set(nv)
+    }
+
     root.amend(
       el.widthVar.signal.styled { (_, w) =>
         css.display(Display.InlineFlex) ++
@@ -90,6 +105,9 @@ object Slider extends ComponentFactory[Slider] {
           ev.preventDefault()
           track.ref.asInstanceOf[js.Dynamic].setPointerCapture(ev.pointerId)
           el.dragging.set(true)
+          // Move keyboard focus to the thumb so subsequent arrow keys work
+          // and the focus ring is visible.
+          thumb.ref.asInstanceOf[dom.HTMLElement].focus()
           setFromClientX(ev.clientX)
         }
       },
@@ -104,9 +122,7 @@ object Slider extends ComponentFactory[Slider] {
           el.dragging.set(false)
         }
       },
-      onPointerCancel --> Observer[dom.PointerEvent] { _ =>
-        el.dragging.set(false)
-      }
+      onPointerCancel.mapTo(false) --> el.dragging.writer
     )
 
     fill.amend(
@@ -126,20 +142,52 @@ object Slider extends ComponentFactory[Slider] {
     )
 
     thumb.amend(
+      role := "slider",
+      aria.valueMin <-- el.minVar.signal,
+      aria.valueMax <-- el.maxVar.signal,
+      aria.valueNow <-- el.valueVar.signal,
+      aria.disabled <-- el.disabledVar.signal,
+      // Focusable when not disabled. We render -1 for disabled so it can't
+      // be Tab-reached but isn't completely removed.
+      tabIndex <-- el.disabledVar.signal.map(d => if (d) -1 else 0),
+      onFocus.mapTo(true) --> el.focused.writer,
+      onBlur.mapTo(false) --> el.focused.writer,
+      onKeyDown --> Observer[dom.KeyboardEvent] { ev =>
+        if (!el.disabledVar.now()) {
+          ev.key match {
+            case "ArrowLeft" | "ArrowDown" =>
+              ev.preventDefault(); stepBy(-1)
+            case "ArrowRight" | "ArrowUp" =>
+              ev.preventDefault(); stepBy(1)
+            case "PageDown" =>
+              ev.preventDefault(); stepBy(-10)
+            case "PageUp" =>
+              ev.preventDefault(); stepBy(10)
+            case "Home" =>
+              ev.preventDefault(); el.valueVar.set(el.minVar.now())
+            case "End" =>
+              ev.preventDefault(); el.valueVar.set(el.maxVar.now())
+            case _ => ()
+          }
+        }
+      },
       Signal
         .combine(
           el.valueVar.signal,
           el.minVar.signal,
           el.maxVar.signal,
           el.disabledVar.signal,
-          el.dragging.signal
+          el.dragging.signal,
+          el.focused.signal
         )
-        .styled { case (t, (_, _, _, d, drag)) =>
+        .styled { case (t, (_, _, _, d, drag, foc)) =>
           val pct = fraction * 100.0
           val bg = if (d) t.surfaceDim else t.surface
           val bd = if (d) t.border else t.brand
           val shadow =
-            if (drag) s"0 0 0 6px ${t.brand.alpha(0.18).toCss}"
+            if (foc && !d)
+              s"0 0 0 4px ${t.brand.alpha(0.3).toCss}"
+            else if (drag) s"0 0 0 6px ${t.brand.alpha(0.18).toCss}"
             else "0 1px 3px rgba(0,0,0,0.18)"
           css.position("absolute") ++
             css.raw("left", s"$pct%") ++
@@ -149,10 +197,11 @@ object Slider extends ComponentFactory[Slider] {
             css.background(bg) ++
             css.border(Length.px(2), BorderStyle.Solid, bd) ++
             css.raw("transform", "translate(-50%, -50%)") ++
-            css.raw("pointer-events", "none") ++
             css.raw("box-shadow", shadow) ++
             css.transition("box-shadow", 120) ++
-            css.raw("box-sizing", "border-box")
+            css.raw("box-sizing", "border-box") ++
+            css.raw("outline", "none") ++
+            css.cursor(if (d) "not-allowed" else "grab")
         }
     )
 

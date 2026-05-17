@@ -12,16 +12,22 @@ final class Popover private[components] (
 ) extends Component {
   private[components] val openVar: Var[Boolean] = Var(false)
   private[components] val placementVar: Var[Popover.Placement] = Var(Popover.Placement.Bottom)
+  private[components] val bodyRoleVar: Var[String] = Var("dialog")
 }
 
 /** Anchored, click-toggled overlay panel. Building block for `Menu`, `HoverCard`,
-  * `ToggleTip`. Click outside closes it. */
+  * `ToggleTip`. Click outside or Escape closes it. */
 object Popover extends ComponentFactory[Popover] {
 
   enum Placement { case Top, Bottom, Left, Right }
 
   val open = Prop.inOut[Boolean, Popover](_.openVar)
   val placement = Prop.in[Placement, Popover](_.placementVar)
+
+  /** ARIA role for the body element. Defaults to `"dialog"`. `Menu` overrides
+    * to `"menu"`. Empty string omits the role attribute (useful for HoverCard /
+    * Tooltip-like usages). */
+  val bodyRole = Prop.in[String, Popover](_.bodyRoleVar)
 
   def trigger(content: Modifier[HtmlElement]*): Mod[Popover] = el =>
     el.triggerSlot.amend(content*)
@@ -60,7 +66,36 @@ object Popover extends ComponentFactory[Popover] {
 
     triggerSlot.amend(
       themed(_ => css.display(Display.InlineFlex) ++ css.alignItems("center")),
-      onClick.mapToUnit --> Observer[Unit](_ => el.openVar.update(b => !b))
+      AriaExtras.ariaHasPopupStr <-- el.bodyRoleVar.signal,
+      AriaExtras.ariaExpandedStr <-- el.openVar.signal.map(_.toString),
+      onClick.mapToUnit --> Observer[Unit](_ => el.openVar.update(b => !b)),
+      // Mirror aria-haspopup/-expanded onto the first focusable descendant
+      // (the user's actual trigger button) so screen readers attach them to
+      // the interactive element, not the wrapping span.
+      onMountCallback { _ =>
+        val btn = triggerSlot.ref.querySelector("button, [tabindex]") match {
+          case el: dom.HTMLElement => el
+          case _                   => null
+        }
+        if (btn != null) {
+          btn.setAttribute("aria-haspopup", el.bodyRoleVar.now())
+          btn.setAttribute("aria-expanded", el.openVar.now().toString)
+        }
+      },
+      el.openVar.signal --> Observer[Boolean] { o =>
+        val btn = triggerSlot.ref.querySelector("button, [tabindex]") match {
+          case el: dom.HTMLElement => el
+          case _                   => null
+        }
+        if (btn != null) btn.setAttribute("aria-expanded", o.toString)
+      },
+      el.bodyRoleVar.signal --> Observer[String] { r =>
+        val btn = triggerSlot.ref.querySelector("button, [tabindex]") match {
+          case el: dom.HTMLElement => el
+          case _                   => null
+        }
+        if (btn != null) btn.setAttribute("aria-haspopup", r)
+      }
     )
 
     bodySlot.amend(
@@ -91,7 +126,17 @@ object Popover extends ComponentFactory[Popover] {
             css.zIndex(30) ++
             css.display(if (isOpen) Display.Block else Display.None) ++
             css.raw("min-width", "180px")
-      }
+      },
+      role <-- el.bodyRoleVar.signal
+    )
+
+    // Escape closes; we don't trap focus (popovers/menus should let Tab move
+    // out — outside-click / focus-out path then closes them).
+    Overlay.install(
+      containerEl = bodySlot,
+      openSignal = el.openVar.signal,
+      close = () => el.openVar.set(false),
+      trapFocus = false
     )
 
     el

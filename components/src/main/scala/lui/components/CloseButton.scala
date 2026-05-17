@@ -41,6 +41,10 @@ object CloseButton extends ComponentFactory[CloseButton] {
             if (d) (Color.transparent, t.textSubtle)
             else if (i.hovered) (t.surfaceDim, t.text)
             else (Color.transparent, t.textMuted)
+          val focusRing =
+            if (i.focused && !i.pressed && !d)
+              css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.35).toCss}")
+            else css.raw("box-shadow", "none")
           stack.centerAll ++
             css.width(dim) ++ css.height(dim) ++
             css.borderRadius(radius.md) ++
@@ -51,7 +55,9 @@ object CloseButton extends ComponentFactory[CloseButton] {
             css.cursor(if (d) "not-allowed" else "pointer") ++
             css.raw("font-family", "inherit") ++
             css.raw("line-height", "1") ++
-            css.transition("background", 120)
+            css.raw("outline", "none") ++
+            css.transition("background", 120) ++
+            focusRing
       },
       aria.label <-- el.ariaLabelVar.signal,
       aria.disabled <-- el.disabledVar.signal,

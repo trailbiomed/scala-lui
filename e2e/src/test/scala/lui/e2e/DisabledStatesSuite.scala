@@ -13,7 +13,7 @@ class DisabledStatesSuite extends E2ESuite {
   test("Disabled Toggle has cursor:not-allowed and ignores click") {
     gotoSlug("toggle")
     // Third toggle in the demo is `Toggle.disabled := true`.
-    val toggle = page.locator("label").nth(2)
+    val toggle = page.locator("[role='switch']").nth(2)
     toggle.waitFor()
     val cursor = toggle.evaluate("e => e.style.cursor").asInstanceOf[String]
     assertEquals(cursor, "not-allowed")

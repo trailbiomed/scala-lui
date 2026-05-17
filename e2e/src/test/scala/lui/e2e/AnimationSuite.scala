@@ -20,30 +20,24 @@ class AnimationSuite extends E2ESuite {
     assert(a != b, s"expected Spinner rotation to advance; both samples = $a")
   }
 
-  test("Toast auto-dismisses after ~2400ms (text clears)") {
+  test("Toast auto-dismisses after ~2400ms (row removed from the DOM)") {
     gotoSlug("toast")
     page.locator("button:has-text('Show toast')").click()
     page.waitForFunction(
-      """() => Array.from(document.querySelectorAll('div'))
-        |  .some(d => d.style && d.style.position === 'fixed'
-        |             && d.style.opacity === '1'
-        |             && (d.textContent || '').startsWith('Toast #'))""".stripMargin
+      """() => Array.from(document.querySelectorAll('[aria-live]'))
+        |  .some(d => (d.textContent || '').startsWith('Toast #'))""".stripMargin
     )
-    // Toast.show clears text after 2400ms — assert with a manual loop so we
-    // can extend the wait past Playwright's default poll interval.
+    // Default Info duration is 2400ms; the row is removed after that. Allow up
+    // to 5s for slow runners.
     val deadline = System.currentTimeMillis() + 5000
     var cleared = false
     while (System.currentTimeMillis() < deadline && !cleared) {
       cleared = page.evaluate(
-        """() => {
-          |  const t = Array.from(document.querySelectorAll('div'))
-          |    .find(d => d.style && d.style.position === 'fixed'
-          |               && d.style.transition && d.style.transition.includes('opacity'));
-          |  return !!t && t.style.opacity === '0';
-          |}""".stripMargin
+        """() => !Array.from(document.querySelectorAll('[aria-live]'))
+          |  .some(d => (d.textContent || '').startsWith('Toast #'))""".stripMargin
       ).asInstanceOf[Boolean]
       if (!cleared) Thread.sleep(150)
     }
-    assert(cleared, "Toast never cleared (opacity:0) within 5s")
+    assert(cleared, "Toast never cleared within 5s")
   }
 }

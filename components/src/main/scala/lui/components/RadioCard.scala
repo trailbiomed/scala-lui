@@ -46,29 +46,40 @@ object RadioCard extends ComponentFactory[RadioCard] {
 
   private def card(o: Option, selected: Boolean, disabled: Boolean, v: Var[String]): HtmlElement = {
     val dot = span()
-    val root = div()
+    val root = button(typ := "button")
     val interact = Interactive.on(root)
 
     root.amend(
+      role := "radio",
+      aria.checked <-- Signal.fromValue(if (selected) "true" else "false"),
+      aria.disabled <-- Signal.fromValue(disabled),
       interact.state.styled { (t, i) =>
         val bd =
           if (disabled) t.border
           else if (selected) t.brand
           else if (i.hovered) t.borderActive
           else t.border
+        val ring =
+          if (i.focused && !i.pressed && !disabled)
+            css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.3).toCss}")
+          else css.raw("box-shadow", "none")
         stack.row(spacing.md) ++
           css.alignItems("flex-start") ++
           css.padding(spacing.lg) ++
           css.border(Length.px(1.5), BorderStyle.Solid, bd) ++
           css.borderRadius(radius.md) ++
           css.background(if (selected) t.brandSoft else t.surface) ++
+          css.color(t.text) ++
           css.cursor(if (disabled) "not-allowed" else "pointer") ++
           css.opacity(if (disabled) 0.55 else 1.0) ++
           css.raw("flex", "1 1 0") ++
-          css.transition("border-color", 150)
+          css.raw("font-family", "inherit") ++
+          css.raw("text-align", "left") ++
+          css.raw("outline", "none") ++
+          css.transition("border-color", 150) ++
+          ring
       },
-      onClick.mapToUnit.filter(_ => !disabled) -->
-        Observer[Unit](_ => v.set(o.key)),
+      onClick.preventDefault.mapTo(o.key).filter(_ => !disabled) --> v.writer,
       dot,
       div(
         stack.col(spacing.xs),

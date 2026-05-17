@@ -75,14 +75,13 @@ class FormsExtraSuite extends E2ESuite {
         |}""".stripMargin
     ).asInstanceOf[String]
     val before = currentIso()
-    // Day cells are <div>s (cursor:pointer) whose text is the day number.
+    // Day cells are now <button role="gridcell">s for keyboard a11y.
     val newDay = page.evaluate(
       """() => {
-        |  const cells = Array.from(document.querySelectorAll('div'))
+        |  const cells = Array.from(document.querySelectorAll("[role='gridcell']"))
         |    .filter(d => /^\d{1,2}$/.test((d.textContent || '').trim())
         |             && d.style && d.style.cursor === 'pointer');
         |  const today = String(new Date().getDate());
-        |  // Pick a different-day cell from the first calendar (cells are in DOM order).
         |  const target = cells.find(d => d.textContent.trim() !== today);
         |  if (!target) return 'no-target';
         |  target.click();

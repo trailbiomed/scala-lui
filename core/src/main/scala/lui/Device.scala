@@ -30,4 +30,17 @@ object Device {
     )
     v.signal
   }
+
+  /** True when the user has requested reduced motion via the OS. Components that animate
+    * (Spinner, Modal/Drawer slide, Tooltip fade, Toast fade) gate transitions and intervals
+    * off this signal. */
+  val reducedMotion: Signal[Boolean] = {
+    val mq = dom.window.matchMedia("(prefers-reduced-motion: reduce)")
+    val v  = Var(mq.matches)
+    mq.addEventListener(
+      "change",
+      (_: dom.Event) => v.set(mq.matches)
+    )
+    v.signal
+  }
 }

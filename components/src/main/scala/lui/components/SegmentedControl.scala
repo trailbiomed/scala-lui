@@ -49,17 +49,24 @@ object SegmentedControl extends ComponentFactory[SegmentedControl] {
       disabled: Boolean,
       valueVar: Var[String]
   ): HtmlElement = {
-    val hovered = Var(false)
-    button(
-      typ := "button",
-      hovered.signal.styled { (t, hov) =>
-        val (bg, fg) = (selected, disabled, hov) match {
+    val btn = button(typ := "button")
+    val interact = Interactive.on(btn)
+    btn.amend(
+      role := "radio",
+      aria.checked <-- Signal.fromValue(if (selected) "true" else "false"),
+      aria.disabled <-- Signal.fromValue(disabled),
+      interact.state.styled { (t, i) =>
+        val (bg, fg) = (selected, disabled, i.hovered) match {
           case (_, true, _)        => (Color.transparent, t.textSubtle)
           case (true, _, _)        => (t.surface, t.text)
           case (false, _, true)    => (Color.transparent, t.text)
           case (false, _, false)   => (Color.transparent, t.textMuted)
         }
-        val shadow = if (selected) "0 1px 3px rgba(0,0,0,0.10)" else "none"
+        val baseShadow = if (selected) "0 1px 3px rgba(0,0,0,0.10)" else "none"
+        val shadow =
+          if (i.focused && !i.pressed && !disabled)
+            s"$baseShadow, 0 0 0 2px ${t.brand.alpha(0.3).toCss}"
+          else baseShadow
         css.padding(Length.px(4), spacing.lg) ++
           css.fontSize(fontSizes.lg) ++
           css.fontWeight(if (selected) FontWeight.SemiBold else FontWeight.Medium) ++
@@ -69,15 +76,14 @@ object SegmentedControl extends ComponentFactory[SegmentedControl] {
           css.borderRadius(radius.sm) ++
           css.cursor(if (disabled) "not-allowed" else "pointer") ++
           css.raw("font-family", "inherit") ++
+          css.raw("outline", "none") ++
           css.raw("box-shadow", shadow) ++
           css.transition("background", 120) ++
           css.raw("white-space", "nowrap")
       },
-      onMouseEnter.mapTo(true) --> hovered.writer,
-      onMouseLeave.mapTo(false) --> hovered.writer,
-      onClick.mapToUnit.filter(_ => !disabled) -->
-        Observer[Unit](_ => valueVar.set(key)),
+      onClick.preventDefault.mapTo(key).filter(_ => !disabled) --> valueVar.writer,
       lbl
     )
+    btn
   }
 }

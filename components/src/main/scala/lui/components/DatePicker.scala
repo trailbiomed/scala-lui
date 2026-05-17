@@ -101,6 +101,16 @@ object DatePicker extends ComponentFactory[DatePicker] {
         .map { case (_, opt) =>
           opt.map(_.firstOfMonth).getOrElse(Day.today.firstOfMonth)
         } --> calendar.monthVar.writer,
+      // Also focus the focused-day cell so arrow keys take over.
+      popover.openVar.signal.changes.filter(identity) --> Observer[Boolean] { _ =>
+        val _ = scala.scalajs.js.timers.setTimeout(0) {
+          val cell = calendar.root.ref.querySelector("[role='gridcell'][tabindex='0']")
+          cell match {
+            case h: org.scalajs.dom.HTMLElement => h.focus()
+            case _                              => ()
+          }
+        }
+      },
       // Pass through min/max bounds.
       el.minVar.signal --> calendar.minVar.writer,
       el.maxVar.signal --> calendar.maxVar.writer

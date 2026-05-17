@@ -33,12 +33,22 @@ object Spinner extends ComponentFactory[Spinner] {
           css.raw("border-top-color", t.brand.toCss) ++
           css.raw("transform", s"rotate(${a}deg)")
       },
-      onMountUnmountCallback(
-        mount = _ => {
+      aria.label := "Loading",
+      role := "status",
+      // Reduced-motion users get a static ring (no rotation interval). The
+      // `role=status` + `aria-label` still communicates "busy" to AT.
+      Device.reducedMotion --> Observer[Boolean] { reduce =>
+        if (reduce) {
+          handle.foreach(js.timers.clearInterval)
+          handle = js.undefined
+        } else if (handle.isEmpty) {
           handle = js.timers.setInterval(33.0) {
             angle.update(a => (a + 12) % 360)
           }
-        },
+        }
+      },
+      onMountUnmountCallback(
+        mount = _ => (),
         unmount = _ => {
           handle.foreach(js.timers.clearInterval)
           handle = js.undefined

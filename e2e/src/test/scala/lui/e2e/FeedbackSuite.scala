@@ -14,18 +14,13 @@ class FeedbackSuite extends E2ESuite {
     last.click() // demo doesn't wire dismiss; assert no throw
   }
 
-  test("Toast.show makes the message appear in the fixed-position toast") {
+  test("Toast.show makes the message appear in an aria-live region") {
     gotoSlug("toast")
     page.locator("button:has-text('Show toast')").click()
-    // Toast() is a position:fixed div whose text is bound to a Var via signal.
-    // The demo currently shows "Toast #0" on the first click (the `count.now()`
-    // call reads the pre-transaction value — Airstream queues `Var.update`),
-    // so this test asserts "Toast #" is present and opacity has gone to 1.
+    // Each toast is a role=status (or role=alert for errors) row with aria-live.
     page.waitForFunction(
-      """() => Array.from(document.querySelectorAll('div'))
-        |  .some(d => d.style && d.style.position === 'fixed'
-        |             && d.style.opacity === '1'
-        |             && d.textContent && d.textContent.startsWith('Toast #'))""".stripMargin
+      """() => Array.from(document.querySelectorAll('[aria-live]'))
+        |  .some(d => (d.textContent || '').startsWith('Toast #'))""".stripMargin
     )
   }
 

@@ -17,8 +17,6 @@ final class Button private[components] (val root: HtmlElement) extends Component
 
 object Button extends ComponentFactory[Button] {
 
-  
-
   enum Variant { case Primary, Secondary, Ghost }
   enum Size { case Small, Medium }
 
@@ -47,7 +45,36 @@ object Button extends ComponentFactory[Button] {
         styleFor(t, v, sz, d || l, i)
       },
       aria.disabled <-- el.disabledVar.signal,
-      span(child.text <-- el.labelVar.signal),
+      aria.busy <-- el.loadingVar.signal,
+      // Loading spinner — only present when `loading := true`. Sized to the
+      // button's height-class so it doesn't change the button's visual width
+      // beyond a few pixels.
+      child.maybe <-- Signal
+        .combine(el.loadingVar.signal, el.sizeVar.signal)
+        .map { case (l, sz) =>
+          if (!l) None
+          else Some {
+            val ringSize = sz match {
+              case Size.Small  => Length.px(12)
+              case Size.Medium => Length.px(14)
+            }
+            div(
+              css.display(Display.InlineFlex) ++
+                css.alignItems("center"),
+              Spinner(Spinner.size := ringSize).root
+            )
+          }
+        },
+      span(
+        // Visually hide the label while loading so the button width stays
+        // close to its pre-loading width and screen readers still see it.
+        el.loadingVar.signal.styled { (_, l) =>
+          if (l) css.opacity(0.0) ++ css.raw("position", "absolute") ++
+            css.raw("pointer-events", "none")
+          else Style.empty
+        },
+        child.text <-- el.labelVar.signal,
+      ),
       onClick.preventDefault.mapToUnit
         .filter(_ => !el.disabledVar.now() && !el.loadingVar.now())
         --> el.clickBus.writer
@@ -69,7 +96,9 @@ object Button extends ComponentFactory[Button] {
         css.transition("background", 150) ++
         css.cursor(if (disabled) "not-allowed" else "pointer") ++
         css.raw("user-select", "none") ++
-        css.raw("font-family", "inherit")
+        css.raw("font-family", "inherit") ++
+        css.raw("position", "relative") ++
+        css.raw("outline", "none")
 
     val sizing = s match {
       case Size.Small  => css.padding(spacing.sm, spacing.lg) ++ css.fontSize(fontSizes.md)
@@ -100,6 +129,14 @@ object Button extends ComponentFactory[Button] {
           css.border(Length.px(1), BorderStyle.Solid, Color.transparent)
     }
 
-    base ++ sizing ++ variantStyle
+    // Custom focus ring — we set outline:none above, so this is the
+    // keyboard-accessible focus indicator. Skip when pressed (the active
+    // shadow would otherwise sit on top of the hover/active visuals).
+    val focusRing =
+      if (i.focused && !i.pressed && !disabled)
+        css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.35).toCss}")
+      else css.raw("box-shadow", "none")
+
+    base ++ sizing ++ variantStyle ++ focusRing
   }
 }
