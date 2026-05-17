@@ -70,47 +70,6 @@ def App(): HtmlElement =
 A minimal `index.html` needs only `<div id="app"></div>` and a `<script
 type="module">` pointing at the linker output. No stylesheet links.
 
-## Module map
-
-| Package | Purpose |
-|---|---|
-| `lui` | `Component`, `ComponentFactory`, `Prop` (props DSL), `Interactive`, `Device`, `Day` |
-| `lui.style` | `Theme`, `palette`, `spacing`, `radius`, `fontSizes`, `breakpoints`, `Length`, `Color`, `css.*` builders, `Style`, `ThemedStyle`, `themed()`, `stack.*`, `typo.*`, `surface.*`, `reset.install()` |
-| `lui.components` | All UI components (`Button`, `TextInput`, `Modal`, …) |
-| `lui.plot` (sbt module `lui-plot`, opt-in) | `Plot[K]` — wraps `nspl-canvas-js` and `nspl-svg-js`. Use `Plot.canvas(initial)` or `Plot.svg(initial)` (same prop API; pick the backend) to bind `K` by type inference, then call the returned bundle's `apply(mods*)`. |
-
-## Three layers of styling
-
-1. **Static `Style`** — built from `css.*` (e.g. `css.padding(spacing.lg) ++
-   css.background(palette.teal600)`). Drops into any tag as a Modifier.
-2. **`ThemedStyle`** — built with `themed(t => Style)` or via the `typo.*`,
-   `surface.*` presets. Resolves to a Style at render time using the current
-   `Theme`. Also a Modifier.
-3. **`signal.styled((t, a) => Style)`** — for state-driven styles. Returns a
-   Modifier that re-emits inline style whenever the signal or theme changes.
-
-Compose with `++`. Composition rules:
-
-```
-Style       ++ Style       = Style
-ThemedStyle ++ Style        = ThemedStyle
-Style       ++ ThemedStyle  = ThemedStyle  (via extension)
-ThemedStyle ++ ThemedStyle  = ThemedStyle
-```
-
-CSS is last-wins inside a single Style:
-
-```scala
-typo.label ++ css.fontWeight(FontWeight.SemiBold)   // upgrades the weight
-```
-
-## Theme tokens vs palette
-
-- **Semantic tokens** (`t.surface`, `t.text`, `t.brand`, `t.danger`, …) flip
-  with the theme. Use these for chrome.
-- **Raw palette** (`palette.teal600`, `palette.red300`, …) is for data
-  encoding (status strips, category colors). Don't reach for these when a
-  semantic token would do.
 
 ## The Component contract
 
@@ -139,6 +98,10 @@ object Foo extends ComponentFactory[Foo] {
   }
 }
 ```
+
+Everything is a component in a lui application.
+Applications must reuse existing components if possible.
+Applications must create new custom components to manage application state all the way up to the root.
 
 - Internal state is `Var`s and `EventBus`es, kept `private[components]`.
 - Props are declared via `Prop.in`, `Prop.inOut`, `Prop.out`. They expose
@@ -249,6 +212,49 @@ root.amend(
 This stays inside the contract — components don't expose internal buses
 publicly; the access only works between components in the same
 `private[components]` scope.
+
+
+## Module map
+
+| Package | Purpose |
+|---|---|
+| `lui` | `Component`, `ComponentFactory`, `Prop` (props DSL), `Interactive`, `Device`, `Day` |
+| `lui.style` | `Theme`, `palette`, `spacing`, `radius`, `fontSizes`, `breakpoints`, `Length`, `Color`, `css.*` builders, `Style`, `ThemedStyle`, `themed()`, `stack.*`, `typo.*`, `surface.*`, `reset.install()` |
+| `lui.components` | All UI components (`Button`, `TextInput`, `Modal`, …) |
+| `lui.plot` (sbt module `lui-plot`, opt-in) | `Plot[K]` — wraps `nspl-canvas-js` and `nspl-svg-js`. Use `Plot.canvas(initial)` or `Plot.svg(initial)` (same prop API; pick the backend) to bind `K` by type inference, then call the returned bundle's `apply(mods*)`. |
+
+## Three layers of styling
+
+1. **Static `Style`** — built from `css.*` (e.g. `css.padding(spacing.lg) ++
+   css.background(palette.teal600)`). Drops into any tag as a Modifier.
+2. **`ThemedStyle`** — built with `themed(t => Style)` or via the `typo.*`,
+   `surface.*` presets. Resolves to a Style at render time using the current
+   `Theme`. Also a Modifier.
+3. **`signal.styled((t, a) => Style)`** — for state-driven styles. Returns a
+   Modifier that re-emits inline style whenever the signal or theme changes.
+
+Compose with `++`. Composition rules:
+
+```
+Style       ++ Style       = Style
+ThemedStyle ++ Style        = ThemedStyle
+Style       ++ ThemedStyle  = ThemedStyle  (via extension)
+ThemedStyle ++ ThemedStyle  = ThemedStyle
+```
+
+CSS is last-wins inside a single Style:
+
+```scala
+typo.label ++ css.fontWeight(FontWeight.SemiBold)   // upgrades the weight
+```
+
+## Theme tokens vs palette
+
+- **Semantic tokens** (`t.surface`, `t.text`, `t.brand`, `t.danger`, …) flip
+  with the theme. Use these for chrome.
+- **Raw palette** (`palette.teal600`, `palette.red300`, …) is for data
+  encoding (status strips, category colors). Don't reach for these when a
+  semantic token would do.
 
 ## Critical Laminar/Scala-3 gotchas
 
@@ -375,7 +381,7 @@ These come up repeatedly. Internalize them.
 - **Single source of truth in `Var`s.** Compose derived state via
   `Signal.combine(...).map(...)`. Don't duplicate the same logical value
   in two Vars.
-- **Prefer binding-style over imperative writes.** Instead of
+- **Must use binding-style over imperative writes.** Instead of
   `someVar.set(x)` / `someVar.update(...)` inside an `Observer`, build an
   `EventStream` whose emissions are the new value and route it with
   `--> someVar.writer`. Stream-based code is composable, distinct-on-the-

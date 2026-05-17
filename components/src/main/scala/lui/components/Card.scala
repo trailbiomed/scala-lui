@@ -20,6 +20,11 @@ object Card extends ComponentFactory[Card] {
 
   def children(content: Modifier[HtmlElement]*): Mod[Card] = el => el.root.amend(content*)
 
+  /** Apply arbitrary modifiers to the card's root element. Use this to attach attributes
+    * the props don't surface (e.g. `idAttr` for in-page anchors, `dataAttr(...)`, ARIA
+    * attributes). */
+  def attr(mods: Modifier[HtmlElement]*): Mod[Card] = el => el.root.amend(mods*)
+
   override protected def build: Card = {
     val root = div()
     val el = new Card(root)

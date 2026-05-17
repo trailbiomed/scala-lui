@@ -8,11 +8,16 @@ final class Badge private[components] (val root: HtmlElement) extends Component 
   private[components] val labelVar: Var[String] = Var("")
   private[components] val variantVar: Var[Badge.Variant] = Var(Badge.Variant.Neutral)
   private[components] val dotVar: Var[Boolean] = Var(false)
+  private[components] val bgVar: Var[Option[Color]] = Var(None)
+  private[components] val fgVar: Var[Option[Color]] = Var(None)
+  private[components] val borderColorVar: Var[Option[Color]] = Var(None)
 }
 
 /** A compact count or status indicator. Different from `Tag`: `Badge` is smaller, has no
   * dismiss affordance, and supports a `dot := true` mode that renders a tiny colored circle
-  * (no label content). Use for notification counts, status pips, etc. */
+  * (no label content). Use for notification counts, status pips, etc.
+  *
+  */
 object Badge extends ComponentFactory[Badge] {
 
   enum Variant { case Brand, Success, Warning, Danger, Info, Neutral }
@@ -21,13 +26,28 @@ object Badge extends ComponentFactory[Badge] {
   val variant = Prop.in[Variant, Badge](_.variantVar)
   val dot = Prop.in[Boolean, Badge](_.dotVar)
 
+  val background = Prop.in[Option[Color], Badge](_.bgVar)
+  val foreground = Prop.in[Option[Color], Badge](_.fgVar)
+  val borderColor = Prop.in[Option[Color], Badge](_.borderColorVar)
+
   override protected def build: Badge = {
     val root = span()
     val el = new Badge(root)
 
+    val state = Signal.combine(
+      el.variantVar.signal,
+      el.dotVar.signal,
+      el.bgVar.signal,
+      el.fgVar.signal,
+      el.borderColorVar.signal
+    )
+
     root.amend(
-      Signal.combine(el.variantVar.signal, el.dotVar.signal).styled { case (t, (v, isDot)) =>
-        val (bg, fg, bd) = colorsFor(t, v)
+      state.styled { case (t, (v, isDot, bgOpt, fgOpt, bdOpt)) =>
+        val (defBg, defFg, defBd) = colorsFor(t, v)
+        val bg = bgOpt.getOrElse(defBg)
+        val fg = fgOpt.getOrElse(defFg)
+        val bd = bdOpt.getOrElse(defBd)
         if (isDot)
           css.display(Display.InlineFlex) ++
             css.width(Length.px(8)) ++

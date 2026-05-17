@@ -27,16 +27,18 @@ import scala.scalajs.js.typedarray.{ArrayBuffer, Uint8Array}
   * user and redirects back silently (no login form) when its session is still valid.
   *
   * Flow:
-  *   1. [[signIn]] mints `code_verifier` + S256 `code_challenge`, stashes the verifier + state in
-  *      `sessionStorage`, and navigates to `endpoints.authorize`. 2. The IDP redirects back to
-  *      `${origin}${redirectPath}?code=…&state=…`. [[handleCallbackIfPresent]] detects the code on
-  *      app boot, POSTs to `endpoints.token` with the stashed verifier, clears verifier + state
-  *      from `sessionStorage`, sets the in-memory token Vars, replaces the URL with
-  *      `postLogoutPath`, and resolves `true`. 3. [[idToken]] / [[accessToken]] are reactive
-  *      `Signal[Option[String]]`s. Bind them to your routing / API client. [[claims]] is a derived
-  *      signal that decodes the id_token to [[Pkce.Claims]] for UI display. 4. [[signOut]] clears
-  *      tokens and bounces through `endpoints.endSession` per OIDC RP-Initiated Logout 1.0
-  *      (`id_token_hint` + `post_logout_redirect_uri`).
+  *
+  *   - [[signIn]] mints `code_verifier` + S256 `code_challenge`, stashes the verifier + state in
+  *     `sessionStorage`, and navigates to `endpoints.authorize`.
+  *   - The IDP redirects back to `${origin}${redirectPath}?code=…&state=…`.
+  *     [[handleCallbackIfPresent]] detects the code on app boot, POSTs to `endpoints.token` with
+  *     the stashed verifier, clears verifier + state from `sessionStorage`, sets the in-memory
+  *     token Vars, replaces the URL with `postLogoutPath`, and resolves `true`.
+  *   - [[idToken]] / [[accessToken]] are reactive `Signal[Option[String]]`s. Bind them to your
+  *     routing / API client. [[claims]] is a derived signal that decodes the id_token to
+  *     [[Pkce.Claims]] for UI display.
+  *   - [[signOut]] clears tokens and bounces through `endpoints.endSession` per OIDC RP-Initiated
+  *     Logout 1.0 (`id_token_hint` + `post_logout_redirect_uri`).
   *
   * {{{
   * val pkce = new Pkce(Pkce.Endpoints(

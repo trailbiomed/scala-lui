@@ -11,13 +11,15 @@ final class Alert private[components] (
   private[components] val titleVar: Var[String] = Var("")
   private[components] val variantVar: Var[Alert.Variant] = Var(Alert.Variant.Info)
   private[components] val dismissibleVar: Var[Boolean] = Var(false)
+  private[components] val showIconVar: Var[Boolean] = Var(true)
   private[components] val dismissBus: EventBus[Unit] = new EventBus[Unit]
   private[components] val closeHover: Var[Boolean] = Var(false)
 }
 
 /** Inline notification with a severity color and optional dismiss button. Unlike `Toast`,
   * `Alert` is in the document flow — use it for persistent messages near the content they
-  * describe. */
+  * describe.
+  */
 object Alert extends ComponentFactory[Alert] {
 
   enum Variant { case Info, Success, Warning, Danger }
@@ -25,6 +27,7 @@ object Alert extends ComponentFactory[Alert] {
   val title = Prop.in[String, Alert](_.titleVar)
   val variant = Prop.in[Variant, Alert](_.variantVar)
   val dismissible = Prop.in[Boolean, Alert](_.dismissibleVar)
+  val showIcon = Prop.in[Boolean, Alert](_.showIconVar)
   val dismiss = Prop.out[Unit, Alert](_.dismissBus)
 
   /** Slot for the alert body (paragraphs, links, etc.). */
@@ -60,13 +63,16 @@ object Alert extends ComponentFactory[Alert] {
     )
 
     iconEl.amend(
-      el.variantVar.signal.styled { (t, v) =>
-        css.color(colorsFor(t, v)._2) ++
-          css.fontSize(fontSizes.xxl) ++
-          css.fontWeight(FontWeight.Bold) ++
-          css.raw("line-height", "1") ++
-          stack.noShrink ++
-          css.raw("margin-top", "1px")
+      Signal.combine(el.variantVar.signal, el.showIconVar.signal).styled { case (t, (v, show)) =>
+        if (!show) css.display(Display.None)
+        else
+          css.display(Display.InlineFlex) ++
+            css.color(colorsFor(t, v)._2) ++
+            css.fontSize(fontSizes.xxl) ++
+            css.fontWeight(FontWeight.Bold) ++
+            css.raw("line-height", "1") ++
+            stack.noShrink ++
+            css.raw("margin-top", "1px")
       },
       child.text <-- el.variantVar.signal.map(iconFor)
     )
