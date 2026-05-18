@@ -49,8 +49,10 @@ object Link extends ComponentFactory[Link] {
     root.amend(
       Signal.combine(el.variantVar.signal, el.interact.state).styled { case (t, (v, i)) =>
         v match {
-          case Variant.Chip => chipStyle(t, i)
-          case _            => textLinkStyle(t, v, i)
+          case Variant.Chip  => chipStyle(t, i)
+          case Variant.Brand => textLinkStyle(if (i.hovered) t.brandHover else t.brand, i)
+          case Variant.Muted => textLinkStyle(if (i.hovered) t.text else t.textMuted, i)
+          case Variant.Plain => textLinkStyle(t.text, i)
         }
       },
       // When scrollTarget is set, that wins for href (so the keyboard target
@@ -87,18 +89,11 @@ object Link extends ComponentFactory[Link] {
     el
   }
 
-  private def textLinkStyle(t: Theme, v: Variant, i: InteractionState): Style = {
-    val color = v match {
-      case Variant.Brand => if (i.hovered) t.brandHover else t.brand
-      case Variant.Muted => if (i.hovered) t.text else t.textMuted
-      case Variant.Plain => t.text
-      case Variant.Chip  => t.brand // unreachable in practice
-    }
-    css.color(color) ++
+  private def textLinkStyle(fallback: Color, i: InteractionState): Style =
+    fg.color(fallback) ++
       css.raw("text-decoration", if (i.hovered) "underline" else "none") ++
       css.cursor("pointer") ++
       css.transition("color", 120)
-  }
 
   private def chipStyle(t: Theme, i: InteractionState): Style = {
     val bg = if (i.hovered) t.brand.alpha(0.28) else t.brand.alpha(0.18)
