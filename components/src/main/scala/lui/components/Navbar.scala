@@ -18,7 +18,7 @@ final class Navbar private[components] (
 
 object Navbar extends ComponentFactory[Navbar] {
 
-  enum Variant { case Solid, Subtle, Transparent }
+  enum Variant { case Solid, Subtle, Transparent, Brand }
   enum Size { case Sm, Md, Lg }
 
   val sticky = Prop.in[Boolean, Navbar](_.stickyVar)
@@ -63,18 +63,29 @@ object Navbar extends ComponentFactory[Navbar] {
             case Variant.Solid       => t.surface
             case Variant.Subtle      => t.surfaceDim
             case Variant.Transparent => Color.transparent
+            case Variant.Brand       => t.brand
+          }
+          val borderColor = v match {
+            case Variant.Brand => t.brandHover
+            case _             => t.border
           }
           val borderDecl =
-            if (isBordered) css.borderBottom(Length.px(1), BorderStyle.Solid, t.border)
+            if (isBordered) css.borderBottom(Length.px(1), BorderStyle.Solid, borderColor)
             else Style.empty
           val stickyDecl =
             if (isSticky) css.position("sticky") ++ css.top(Length.px(0))
             else Style.empty
           val shadowDecl = v match {
-            case Variant.Solid => css.raw("box-shadow", "0 1px 2px rgba(0,0,0,0.04)")
+            case Variant.Solid => css.raw("box-shadow", "0 2px 4px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06)")
+            case Variant.Brand => css.raw("box-shadow", "0 2px 4px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)")
+            case _             => Style.empty
+          }
+          val fgDecl = v match {
+            case Variant.Brand => fg.set(t.onBrand)
             case _             => Style.empty
           }
           css.background(bg) ++
+            fgDecl ++
             borderDecl ++
             shadowDecl ++
             css.height(heightFor(sz)) ++

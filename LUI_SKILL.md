@@ -748,7 +748,7 @@ Two shapes of component exist:
 
 | Component | Props (kind) |
 |---|---|
-| `Navbar` | `sticky:in (Boolean, default true)`, `bordered:in (Boolean, default true)`, `variant:in (Solid/Subtle/Transparent, default Solid)`, `size:in (Sm/Md/Lg, default Md)`, `start(slot)`, `center(slot)`, `end(slot)` |
+| `Navbar` | `sticky:in (Boolean, default true)`, `bordered:in (Boolean, default true)`, `variant:in (Solid/Subtle/Transparent/Brand, default Solid)`, `size:in (Sm/Md/Lg, default Md)`, `start(slot)`, `center(slot)`, `end(slot)` |
 | `SectionLabel` | `text:in` |
 | `MetricCell` | `value:in`, `score:in`, `bar:in[Option[Double]]`, `state:in (Idle/Active/Running/Queued)`, `click:out` |
 | `ReferenceCard` | `name:in`, `icon:in`, `sourceLabel:in`, `sampleCount:in`, `organism:in`, `description:in`, `lastUsed:in`, `click:out` |

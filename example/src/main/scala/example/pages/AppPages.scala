@@ -82,6 +82,17 @@ object AppPages {
           Navbar.start(span(typo.h2 ++ css.margin(Length.px(0)), "Transparent")),
           Navbar.end(Button(Button.label := "Action", Button.size := Button.Size.Small))
         )
+      ),
+      PageTemplate.codedDemo(
+        "Brand",
+        """Navbar(Navbar.variant := Navbar.Variant.Brand, …)"""
+      )(
+        Navbar(
+          Navbar.sticky := false,
+          Navbar.variant := Navbar.Variant.Brand,
+          Navbar.start(span(typo.h2 ++ css.margin(Length.px(0)), "Brand")),
+          Navbar.end(Button(Button.label := "Action", Button.variant := Button.Variant.Secondary, Button.size := Button.Size.Small))
+        )
       )
     ),
     PageTemplate.section("Sizes")(
@@ -128,7 +139,7 @@ object AppPages {
     PageTemplate.propsTable(
       ("sticky",   "Boolean",                       "Pin to top of viewport (position: sticky). Defaults to true."),
       ("bordered", "Boolean",                       "Show a bottom border. Defaults to true."),
-      ("variant",  "Solid | Subtle | Transparent",  "Background treatment. Solid uses surface + shadow, Subtle uses surfaceDim, Transparent is transparent."),
+      ("variant",  "Solid | Subtle | Transparent | Brand",  "Background treatment. Solid uses surface + shadow, Subtle uses surfaceDim, Transparent is transparent, Brand uses the brand color with onBrand text."),
       ("size",     "Sm | Md | Lg",                  "Bar height (48 / 56 / 64 px)."),
       ("start",    "Slot",                          "Left content. Use for brand / logo."),
       ("center",   "Slot",                          "Center content. Use for primary navigation."),

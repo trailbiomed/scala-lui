@@ -40,14 +40,33 @@ object stack {
     css.flex(1, 1, Length.zero) ++ css.minWidth(Length.zero) ++ css.minHeight(Length.zero)
 }
 
+/** Text-color override channel. Typography presets resolve their `color` through this
+  * channel, so a parent that calls `fg.override(c)` recolors every typo descendant in one
+  * shot — used by `Navbar`'s `Brand` variant to flip text to `onBrand` without per-element
+  * styling. Implemented as a CSS custom property; the name is private to this object. */
+object fg {
+
+  private val varName = "--lui-fg"
+
+  /** Use as the `color` decl in a themed preset. Resolves to the parent-supplied override
+    * if any ancestor called `fg.set(...)`, otherwise to `fallback`. */
+  def color(fallback: Color): Style =
+    css.raw("color", s"var($varName, ${fallback.toCss})")
+
+  /** Set on an ancestor element to recolor every `fg.color(...)` descendant. */
+  def set(c: Color): Style =
+    css.raw(varName, c.toCss)
+}
+
 /** Typography presets — themed text styles. Each value is a `ThemedStyle`, so it doubles as
-  * a Laminar `Modifier[HtmlElement]`: `span(typo.h1, "title")`. Compose with `++`. */
+  * a Laminar `Modifier[HtmlElement]`: `span(typo.h1, "title")`. Compose with `++`. Text
+  * color goes through `fg` so a parent can override every typo descendant in one shot. */
 object typo {
 
   val eyebrow: ThemedStyle = ThemedStyle { t =>
     css.fontSize(fontSizes.xs) ++
       css.fontWeight(FontWeight.Bold) ++
-      css.color(t.textSubtle) ++
+      fg.color(t.textSubtle) ++
       css.textTransform("uppercase") ++
       css.letterSpacing(Length.em(0.05))
   }
@@ -55,34 +74,34 @@ object typo {
   val h1: ThemedStyle = ThemedStyle { t =>
     css.fontSize(fontSizes.display) ++
       css.fontWeight(FontWeight.SemiBold) ++
-      css.color(t.text)
+      fg.color(t.text)
   }
 
   val h2: ThemedStyle = ThemedStyle { t =>
     css.fontSize(fontSizes.xxxl) ++
       css.fontWeight(FontWeight.SemiBold) ++
-      css.color(t.text)
+      fg.color(t.text)
   }
 
   val label: ThemedStyle = ThemedStyle { t =>
     css.fontSize(fontSizes.xl) ++
       css.fontWeight(FontWeight.Medium) ++
-      css.color(t.text)
+      fg.color(t.text)
   }
 
   val body: ThemedStyle = ThemedStyle { t =>
     css.fontSize(fontSizes.xl) ++
-      css.color(t.text)
+      fg.color(t.text)
   }
 
   val muted: ThemedStyle = ThemedStyle { t =>
     css.fontSize(fontSizes.md) ++
-      css.color(t.textMuted)
+      fg.color(t.textMuted)
   }
 
   val hint: ThemedStyle = ThemedStyle { t =>
     css.fontSize(fontSizes.md) ++
-      css.color(t.textSubtle)
+      fg.color(t.textSubtle)
   }
 }
 
