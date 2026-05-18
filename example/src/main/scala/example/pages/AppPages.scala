@@ -136,43 +136,6 @@ object AppPages {
     )
   )
 
-  def pageHeader(): HtmlElement = PageTemplate(
-    title = "PageHeader",
-    summary = "Top-of-page bar with title, an optional back link, and a right-aligned actions slot."
-  )(
-    PageTemplate.section("Demo")(
-      PageTemplate.codedDemo(
-        "PageHeader",
-        """PageHeader(
-          |  PageHeader.title := "Workbench",
-          |  PageHeader.back := "← Home",
-          |  PageHeader.onBack.foreach(_ => goHome()),
-          |  PageHeader.right(
-          |    Button(Button.label := "New project",
-          |      Button.variant := Button.Variant.Primary,
-          |      Button.size := Button.Size.Small),
-          |    Avatar(Avatar.name := "John Doe", Avatar.size := Avatar.Size.Sm)
-          |  )
-          |)""".stripMargin
-      )(
-        PageHeader(
-          PageHeader.title := "Workbench",
-          PageHeader.back := "← Home",
-          PageHeader.right(
-            Button(Button.label := "New project", Button.variant := Button.Variant.Primary, Button.size := Button.Size.Small),
-            Avatar(Avatar.name := "John Doe", Avatar.size := Avatar.Size.Sm)
-          )
-        )
-      )
-    ),
-    PageTemplate.propsTable(
-      ("title",  "String",     "Page title."),
-      ("back",   "String",     "Optional back-link label. Empty string hides it."),
-      ("onBack", "Out[Unit]",  "Back link click event."),
-      ("right",  "Slot",       "Right-side actions.")
-    )
-  )
-
   def sectionLabel(): HtmlElement = PageTemplate(
     title = "SectionLabel",
     summary = "Small uppercase heading for sections inside a panel."

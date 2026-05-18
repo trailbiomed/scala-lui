@@ -138,7 +138,6 @@ object DocsIndex {
     )),
     DocCategory("Application primitives", Seq(
       DocEntry("navbar",            "Navbar",           () => AppPages.navbar()),
-      DocEntry("page-header",       "PageHeader",       () => AppPages.pageHeader()),
       DocEntry("section-label",     "SectionLabel",     () => AppPages.sectionLabel()),
       DocEntry("metric-cell",       "MetricCell",       () => AppPages.metricCell()),
       DocEntry("reference-card",    "ReferenceCard",    () => AppPages.referenceCard())
