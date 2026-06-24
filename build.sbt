@@ -2,6 +2,7 @@ import org.scalajs.linker.interface.ModuleSplitStyle
 
 ThisBuild / scalaVersion := "3.3.7"
 ThisBuild / organization := "io.github.pityka"
+ThisBuild / description  := "Typed UI component library for Laminar (Scala.js) with inline-only styling."
 ThisBuild / homepage     := Some(url("https://github.com/trailbiomed/scala-lui"))
 ThisBuild / licenses     := Seq("MIT" -> url("https://opensource.org/licenses/MIT"))
 ThisBuild / scmInfo      := Some(
