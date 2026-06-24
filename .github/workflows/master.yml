@@ -2,9 +2,6 @@ name: Publish
 
 on:
   push:
-    branches:
-      - main
-      - master
     tags:
       - "v*"
 
@@ -13,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write    # required to publish to GitHub Packages
+      packages: write
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # sbt-dynver needs tags
+          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
@@ -30,8 +27,20 @@ jobs:
       - name: Show derived version
         run: sbt 'show ThisBuild / version'
 
-      - name: Publish core + components
+      - name: Publish to Maven Central
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        run: sbt -J-Xmx3g ci-release
+
+      - name: Publish to GitHub Packages
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: sbt -J-Xmx3g "core/publish" "components/publish" "plot/publish" "pkce/publish"
+        run: |
+          sbt -J-Xmx3g \
+            'set ThisBuild / publishTo := Some("GitHub Package Registry" at "https://maven.pkg.github.com/trailbiomed/scala-lui")' \
+            'set ThisBuild / credentials += Credentials("GitHub Package Registry", "maven.pkg.github.com", sys.env.getOrElse("GITHUB_ACTOR", ""), sys.env.getOrElse("GITHUB_TOKEN", ""))' \
+            core/publish components/publish plot/publish pkce/publish

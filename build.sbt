@@ -14,21 +14,9 @@ ThisBuild / developers   := List(
   Developer("pityka", "Istvan Bartha", "bartha.pityu@gmail.com", url("https://github.com/pityka"))
 )
 
-// Versioning: sbt-dynver derives the version from git tags.
-// Tag like v0.1.0 -> 0.1.0; uncommitted -> 0.1.0+1-abcd1234-SNAPSHOT (etc).
 ThisBuild / dynverSeparator := "-"
 
-// Publish to GitHub Packages. Credentials come from CI env vars.
-ThisBuild / publishMavenStyle := true
-ThisBuild / publishTo := Some(
-  "GitHub Package Registry" at "https://maven.pkg.github.com/trailbiomed/scala-lui"
-)
-ThisBuild / credentials += Credentials(
-  "GitHub Package Registry",
-  "maven.pkg.github.com",
-  sys.env.getOrElse("GITHUB_ACTOR",   "x-access-token"),
-  sys.env.getOrElse("GITHUB_TOKEN",   "")
-)
+ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
 
 ThisBuild / scalacOptions ++= Seq(
   "-deprecation",
