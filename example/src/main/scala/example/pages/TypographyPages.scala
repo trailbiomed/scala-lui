@@ -331,9 +331,26 @@ object TypographyPages {
         )
       )
     ),
+    PageTemplate.section("Tinted variant")(
+      PageTemplate.codedDemo(
+        "Code.variant := Tinted",
+        """Code(
+          |  Code.block   := true,
+          |  Code.variant := Code.Variant.Tinted,
+          |  Code.text    := "val xs = Vector.fill(8)(0)"
+          |)""".stripMargin
+      )(
+        Code(
+          Code.block   := true,
+          Code.variant := Code.Variant.Tinted,
+          Code.text    := "val xs: Vector[Int] = Vector.fill(8)(0)\nval ys = xs.zipWithIndex.map { case (_, i) => i * i }\nys.sum"
+        )
+      )
+    ),
     PageTemplate.propsTable(
-      ("text",  "String",  "The code to render."),
-      ("block", "Boolean", "If true, multi-line preformatted block. Default false (inline chip).")
+      ("text",    "String",  "The code to render."),
+      ("block",   "Boolean", "If true, multi-line preformatted block. Default false (inline chip)."),
+      ("variant", "Boxed/Tinted", "Boxed (default): 1px border. Tinted: no border, tinted background, small radius, inherits font-size.")
     )
   )
 

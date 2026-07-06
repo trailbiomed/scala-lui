@@ -718,7 +718,7 @@ Two shapes of component exist:
 | `Mark` | `Mark(content*)` | Yellow highlight. |
 | `Em` | `Em(content*)` | Italic emphasis. |
 | `Highlight` | `Highlight(text: String, query: String)` | Wraps every match of `query` in `Mark`. |
-| `Code` | `Code(Code.text := …, Code.block := …)` | Inline chip or block. |
+| `Code` | `Code(Code.text := …, Code.block := …, Code.variant := Boxed/Tinted)` | Inline chip or block. `Boxed` (default) has a 1px border; `Tinted` has no border, tinted background, small radius, and inherits font-size (`1em`) — use for slides / large-typography contexts. |
 | `Kbd` | `Kbd(Kbd.key := …)` | Keyboard-key chip. |
 | `Icon` | `Icon(size = …, color = Some(Color))(glyph*)` | Wrapper. `glyph` is anything — string, emoji, `icons.*`, custom SVG. |
 | `icons` | `icons.check`, `icons.search`, `icons.trash`, … | Curated Lucide glyph set (24×24, stroke-based, MIT). Returns `SvgElement`. Recolors via parent `css.color(...)`. Add new ones in `components/.../icons.scala`. |
