@@ -19,6 +19,8 @@ ThisBuild / dynverSeparator := "-"
 
 ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
 
+ThisBuild / Compile / doc / sources := Seq.empty
+
 ThisBuild / scalacOptions ++= Seq(
   "-deprecation",
   "-feature",
