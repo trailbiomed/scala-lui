@@ -700,6 +700,7 @@ Two shapes of component exist:
 |---|---|---|
 | `Modal` | `open:inOut`, `title:in`, `width:in`, `dismissible:in`, `close:out`, `body(slot)`, `footer(slot)` | Centered dialog. Built-in close × when `dismissible` (default true); footer bar only mounts when `Modal.footer(...)` is supplied. |
 | `Drawer` | `open:inOut`, `width:in`, `title:in`, `side:in (Left/Right)`, `body(slot)` | Side panel. |
+| `FullscreenOverlay` | `open:inOut`, `zIndex:in (default 100)`, `trapFocus:in (default true)`, `close:out`, `body(slot)` | Viewport-filling surface — no backdrop, no chrome. For slideshows / presentation modes / kiosk surfaces. Escape closes; focus is trapped inside while open and restored on close. |
 | `Tooltip` | `label:in`, `placement:in (Top/Right/Bottom/Left)`, `trigger(slot)` | Hover-only. |
 | `Popover` | `open:inOut`, `placement:in`, `trigger(slot)`, `body(slot)` | Click-toggled; building block for the next three. |
 | `Menu` | `items:in[Seq[Menu.Item]]`, `select:out[String]`, `trigger(slot)` | `Item(key, label, icon, danger)`. |
@@ -720,6 +721,7 @@ Two shapes of component exist:
 | `Highlight` | `Highlight(text: String, query: String)` | Wraps every match of `query` in `Mark`. |
 | `Code` | `Code(Code.text := …, Code.block := …, Code.variant := Boxed/Tinted)` | Inline chip or block. `Boxed` (default) has a 1px border; `Tinted` has no border, tinted background, small radius, and inherits font-size (`1em`) — use for slides / large-typography contexts. |
 | `Kbd` | `Kbd(Kbd.key := …)` | Keyboard-key chip. |
+| `KbdList` | `KbdList(KbdList.entries := Seq(KbdList.Entry(keys, desc), …), KbdList.gap := spacing.sm)` | Vertical list of shortcut rows: multi-`Kbd` chips on the left, description on the right. Canonical shortcut-help layout. |
 | `Icon` | `Icon(size = …, color = Some(Color))(glyph*)` | Wrapper. `glyph` is anything — string, emoji, `icons.*`, custom SVG. |
 | `icons` | `icons.check`, `icons.search`, `icons.trash`, … | Curated Lucide glyph set (24×24, stroke-based, MIT). Returns `SvgElement`. Recolors via parent `css.color(...)`. Add new ones in `components/.../icons.scala`. |
 | `Checkmark` | `Checkmark(size = …)` | |

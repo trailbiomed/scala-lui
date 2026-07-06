@@ -55,7 +55,8 @@ object DocsIndex {
       DocEntry("em",          "Em",         () => TypographyPages.em()),
       DocEntry("highlight",   "Highlight",  () => TypographyPages.highlight()),
       DocEntry("code",        "Code",       () => TypographyPages.code()),
-      DocEntry("kbd",         "Kbd",        () => TypographyPages.kbd())
+      DocEntry("kbd",         "Kbd",        () => TypographyPages.kbd()),
+      DocEntry("kbd-list",    "KbdList",    () => TypographyPages.kbdList())
     )),
     DocCategory("Buttons", Seq(
       DocEntry("button",            "Button",          () => ButtonPages.button()),
@@ -125,13 +126,14 @@ object DocsIndex {
       DocEntry("toast",            "Toast",           () => FeedbackPages.toast())
     )),
     DocCategory("Overlays", Seq(
-      DocEntry("modal",       "Modal",       () => OverlayPages.modal()),
-      DocEntry("drawer",      "Drawer",      () => OverlayPages.drawer()),
-      DocEntry("tooltip",     "Tooltip",     () => OverlayPages.tooltip()),
-      DocEntry("popover",     "Popover",     () => OverlayPages.popover()),
-      DocEntry("menu",        "Menu",        () => OverlayPages.menu()),
-      DocEntry("hover-card",  "HoverCard",   () => OverlayPages.hoverCard()),
-      DocEntry("toggle-tip",  "ToggleTip",   () => OverlayPages.toggleTip())
+      DocEntry("modal",              "Modal",              () => OverlayPages.modal()),
+      DocEntry("drawer",             "Drawer",             () => OverlayPages.drawer()),
+      DocEntry("fullscreen-overlay", "FullscreenOverlay",  () => OverlayPages.fullscreenOverlay()),
+      DocEntry("tooltip",            "Tooltip",            () => OverlayPages.tooltip()),
+      DocEntry("popover",            "Popover",            () => OverlayPages.popover()),
+      DocEntry("menu",               "Menu",               () => OverlayPages.menu()),
+      DocEntry("hover-card",         "HoverCard",          () => OverlayPages.hoverCard()),
+      DocEntry("toggle-tip",         "ToggleTip",          () => OverlayPages.toggleTip())
     )),
     DocCategory("Plot", Seq(
       DocEntry("plot",      "Plot",      () => PlotPages.plot())

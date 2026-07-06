@@ -386,4 +386,38 @@ object TypographyPages {
       ("key", "String", "Key label, e.g. \"K\", \"⌘\", \"Enter\".")
     )
   )
+
+  def kbdList(): HtmlElement = PageTemplate(
+    title = "KbdList",
+    summary = "Vertical list of shortcut rows — the canonical keyboard-help layout."
+  )(
+    PageTemplate.section("Shortcut help panel")(
+      PageTemplate.codedDemo(
+        "KbdList",
+        """KbdList(
+          |  KbdList.entries := Seq(
+          |    KbdList.Entry(Seq("⌘", "K"),        "Open command palette"),
+          |    KbdList.Entry(Seq("→", "PageDown"), "Next page"),
+          |    KbdList.Entry(Seq("←", "PageUp"),   "Previous page"),
+          |    KbdList.Entry(Seq("?"),             "Toggle this help"),
+          |    KbdList.Entry(Seq("Esc"),           "Close")
+          |  )
+          |)""".stripMargin
+      )(
+        KbdList(
+          KbdList.entries := Seq(
+            KbdList.Entry(Seq("⌘", "K"),        "Open command palette"),
+            KbdList.Entry(Seq("→", "PageDown"), "Next page"),
+            KbdList.Entry(Seq("←", "PageUp"),   "Previous page"),
+            KbdList.Entry(Seq("?"),             "Toggle this help"),
+            KbdList.Entry(Seq("Esc"),           "Close")
+          )
+        )
+      )
+    ),
+    PageTemplate.propsTable(
+      ("entries", "Seq[Entry]", "One row per shortcut. Multi-key entries render as separate Kbd chips."),
+      ("gap",     "Length",     "Vertical space between rows. Default spacing.sm.")
+    )
+  )
 }

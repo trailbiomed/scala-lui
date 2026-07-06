@@ -273,6 +273,56 @@ object OverlayPages {
     )
   )
 
+  def fullscreenOverlay(): HtmlElement = PageTemplate(
+    title = "FullscreenOverlay",
+    summary = "Viewport-filling surface with no backdrop or chrome. Slideshows, presentation modes, kiosk views."
+  )(
+    PageTemplate.section("Demo")(
+      PageTemplate.codedDemo(
+        "FullscreenOverlay",
+        """val open = Var(false)
+          |Button(Button.label := "Enter fullscreen",
+          |  Button.click.foreach(_ => open.set(true)))
+          |FullscreenOverlay(
+          |  FullscreenOverlay.open <--> open,
+          |  FullscreenOverlay.body(
+          |    div(stack.centerAll ++ stack.grow,
+          |      Heading(1)("Now presenting."),
+          |      Button(Button.label := "Exit",
+          |        Button.click.foreach(_ => open.set(false)))
+          |    )
+          |  )
+          |)""".stripMargin
+      )({
+        val open = Var(false)
+        div(
+          Button(Button.label := "Enter fullscreen", Button.click.foreach(_ => open.set(true))),
+          FullscreenOverlay(
+            FullscreenOverlay.open <--> open,
+            FullscreenOverlay.body(
+              div(
+                stack.centerAll ++ stack.grow ++ css.padding(spacing.xxl),
+                div(
+                  stack.col(spacing.lg) ++ css.alignItems("center"),
+                  Heading(1)("Now presenting."),
+                  span(typo.muted, "Press Escape or the button below to exit."),
+                  Button(Button.label := "Exit", Button.click.foreach(_ => open.set(false)))
+                )
+              )
+            )
+          )
+        )
+      })
+    ),
+    PageTemplate.propsTable(
+      ("open",      "InOut[Boolean]", "Open state."),
+      ("zIndex",    "Int",            "Stacking order. Default 100."),
+      ("trapFocus", "Boolean",        "Trap Tab within the overlay. Default true."),
+      ("close",     "Out[Unit]",      "Sink invoked on Escape or external dismiss."),
+      ("body",      "Slot",           "Content that fills the viewport.")
+    )
+  )
+
   def toggleTip(): HtmlElement = PageTemplate(
     title = "ToggleTip",
     summary = "Click-to-toggle small tip popover. Better for touch than Tooltip."
