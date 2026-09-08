@@ -118,7 +118,7 @@ object RadioGroup extends ComponentFactory[RadioGroup] {
         .combine(isSelected, el.disabledVar.signal, interact.state)
         .styled { case (t, (selected, disabled, i)) =>
           val ring =
-            if (i.focused && !i.pressed && !disabled)
+            if (i.focusVisible && !i.pressed && !disabled)
               css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.3).toCss}")
             else css.raw("box-shadow", "none")
           stack.row(spacing.md) ++

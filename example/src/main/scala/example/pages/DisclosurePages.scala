@@ -43,11 +43,34 @@ object DisclosurePages {
         )
       )
     ),
+    PageTemplate.section("Chevron size")(
+      PageTemplate.codedDemo(
+        "Accordion.chevronSize",
+        """Accordion(
+          |  Accordion.title := "Advanced",
+          |  Accordion.chevronSize := fontSizes.xxl,
+          |  Accordion.body(span(typo.muted, "…"))
+          |)""".stripMargin
+      )(
+        div(stack.col(spacing.md),
+          Accordion(
+            Accordion.title := "Default chevron",
+            Accordion.body(span(typo.muted, "Sized to the header's own type size."))
+          ),
+          Accordion(
+            Accordion.title := "Larger chevron",
+            Accordion.chevronSize := fontSizes.xxl,
+            Accordion.body(span(typo.muted, "fontSizes.xxl."))
+          )
+        )
+      )
+    ),
     PageTemplate.propsTable(
-      ("title",   "String",         "Section title."),
-      ("summary", "String",         "Inline summary shown next to the title."),
-      ("open",    "InOut[Boolean]", "Two-way binding for the open state."),
-      ("body",    "Slot",           "Children rendered when open.")
+      ("title",        "String",         "Section title."),
+      ("summary",      "String",         "Inline summary shown next to the title."),
+      ("open",         "InOut[Boolean]", "Two-way binding for the open state."),
+      ("chevronSize",  "Length",         "Size of the disclosure chevron. Defaults to the header's type size."),
+      ("body",         "Slot",           "Children rendered when open.")
     )
   )
 

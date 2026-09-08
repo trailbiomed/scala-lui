@@ -35,7 +35,7 @@ object Tag extends ComponentFactory[Tag] {
             aria.label <-- el.labelVar.signal.map(l => s"Remove $l"),
             interact.state.styled { (t, i) =>
               val ring =
-                if (i.focused && !i.pressed)
+                if (i.focusVisible && !i.pressed)
                   css.raw("box-shadow", s"0 0 0 2px ${t.brand.alpha(0.35).toCss}")
                 else css.raw("box-shadow", "none")
               css.cursor("pointer") ++

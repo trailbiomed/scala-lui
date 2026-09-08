@@ -41,7 +41,7 @@ object Toggle extends ComponentFactory[Toggle] {
             case (false, _) => t.border
           }
           val ring =
-            if (i.focused && !i.pressed && !d)
+            if (i.focusVisible && !i.pressed && !d)
               css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.3).toCss}")
             else css.raw("box-shadow", "none")
           css.position("relative") ++

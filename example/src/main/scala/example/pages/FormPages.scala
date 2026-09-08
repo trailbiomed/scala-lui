@@ -179,6 +179,11 @@ object FormPages {
       })
     ),
     PageTemplate.section("Alignment & width")(
+      PageTemplate.paragraph(
+        "`width` defaults to `Length.pct(100)`, so an input fills its parent rather than " +
+          "the browser's ~20-character default. Set it explicitly for a field whose " +
+          "content has a known size."
+      ),
       PageTemplate.codedDemo(
         "TextInput.align / .width",
         """TextInput(TextInput.placeholder := "Right",
@@ -198,7 +203,7 @@ object FormPages {
       ("invalid",     "Boolean",          "Renders the danger border + shadow."),
       ("variant",     "Text | Number",    "Sets the underlying input type."),
       ("align",       "TextAlign",        "Text alignment."),
-      ("width",       "Length",           "Width of the input.")
+      ("width",       "Length",           "Width of the input. Default `Length.pct(100)`.")
     )
   )
 
@@ -220,13 +225,51 @@ object FormPages {
         Textarea(Textarea.value <--> v, Textarea.rows := 3, Textarea.placeholder := "Description")
       })
     ),
+    PageTemplate.section("Nested in a surface")(
+      PageTemplate.paragraph(
+        "`bordered := false` drops the field's own border, radius, fill and focus ring, so " +
+          "it can sit inside a composer box that already draws them. Without it, nesting a " +
+          "Textarea in a bordered surface draws two boxes."
+      ),
+      PageTemplate.codedDemo(
+        "Composer",
+        """div(surface.card ++ css.padding(spacing.sm),
+          |  Textarea(
+          |    Textarea.value <--> draft,
+          |    Textarea.rows := 3,
+          |    Textarea.bordered := false,
+          |    Textarea.resizable := false,
+          |    Textarea.placeholder := "Write a note…"
+          |  ),
+          |  div(stack.row(spacing.sm) ++ css.justifyContent("flex-end"),
+          |    Button(Button.label := "Post", Button.size := Button.Size.Small)
+          |  )
+          |)""".stripMargin
+      )({
+        val draft = Var("")
+        div(
+          surface.card ++ css.padding(spacing.sm) ++ stack.col(spacing.sm),
+          Textarea(
+            Textarea.value <--> draft,
+            Textarea.rows := 3,
+            Textarea.bordered := false,
+            Textarea.resizable := false,
+            Textarea.placeholder := "Write a note…"
+          ),
+          div(stack.row(spacing.sm) ++ css.justifyContent("flex-end"),
+            Button(Button.label := "Post", Button.size := Button.Size.Small)
+          )
+        )
+      })
+    ),
     PageTemplate.propsTable(
       ("value",       "InOut[String]", "Two-way binding."),
       ("rows",        "Int",           "Visible row count."),
       ("placeholder", "String",        "Placeholder text."),
       ("disabled",    "Boolean",       "Disables the input."),
       ("invalid",     "Boolean",       "Renders the danger border + shadow."),
-      ("resizable",   "Boolean",       "Allow vertical resize. Default true.")
+      ("resizable",   "Boolean",       "Allow vertical resize. Default true."),
+      ("bordered",    "Boolean",       "Own border, radius, fill and focus ring. Default true.")
     )
   )
 
@@ -440,10 +483,55 @@ object FormPages {
         )
       })
     ),
+    PageTemplate.section("Mixed state")(
+      PageTemplate.paragraph(
+        "`indeterminate` is the third state a \"select all\" box needs when only some of " +
+          "its children are checked. The box shows a dash, `aria-checked` reports " +
+          "\"mixed\", and activating it resolves to checked."
+      ),
+      PageTemplate.codedDemo(
+        "Select all",
+        """val picked = Var(Set("a"))
+          |val names  = Seq("a" -> "Run A", "b" -> "Run B", "c" -> "Run C")
+          |Checkbox(
+          |  Checkbox.label := "Select all",
+          |  Checkbox.checked <-- picked.signal.map(_.size == names.size),
+          |  Checkbox.indeterminate <-- picked.signal.map(p => p.nonEmpty && p.size < names.size),
+          |  Checkbox.checked --> Observer[Boolean] { all =>
+          |    picked.set(if (all) names.map(_._1).toSet else Set.empty)
+          |  }
+          |)""".stripMargin
+      )({
+        val names = Seq("a" -> "Run A", "b" -> "Run B", "c" -> "Run C")
+        val picked = Var(Set("a"))
+        div(stack.col(spacing.md),
+          Checkbox(
+            Checkbox.label := "Select all",
+            Checkbox.checked <-- picked.signal.map(_.size == names.size),
+            Checkbox.indeterminate <-- picked.signal.map(p => p.nonEmpty && p.size < names.size),
+            Checkbox.checked --> Observer[Boolean] { all =>
+              picked.set(if (all) names.map(_._1).toSet else Set.empty)
+            }
+          ),
+          div(stack.col(spacing.sm) ++ css.raw("padding-left", spacing.xxl.toCss),
+            names.map { case (key, label) =>
+              Checkbox(
+                Checkbox.label := label,
+                Checkbox.checked <-- picked.signal.map(_.contains(key)),
+                Checkbox.checked --> Observer[Boolean] { on =>
+                  picked.update(p => if (on) p + key else p - key)
+                }
+              )
+            }
+          )
+        )
+      })
+    ),
     PageTemplate.propsTable(
-      ("label",    "String",         "Label text."),
-      ("checked",  "InOut[Boolean]", "Two-way binding."),
-      ("disabled", "Boolean",        "Disables interaction.")
+      ("label",         "String",         "Label text."),
+      ("checked",       "InOut[Boolean]", "Two-way binding."),
+      ("indeterminate", "Boolean",        "Mixed state. Overrides what `checked` draws and reports."),
+      ("disabled",      "Boolean",        "Disables interaction.")
     )
   )
 
@@ -476,11 +564,45 @@ object FormPages {
         )
       })
     ),
+    PageTemplate.section("Extra content")(
+      PageTemplate.paragraph(
+        "`children(...)` appends into the card's text column, under the description, so a " +
+          "card that has to carry a tag row or a metric doesn't have to be rebuilt by hand."
+      ),
+      PageTemplate.codedDemo(
+        "With a tag row",
+        """CheckboxCard(
+          |  CheckboxCard.title := "GSE145926",
+          |  CheckboxCard.description := "Bronchoalveolar lavage, 9 donors.",
+          |  CheckboxCard.checked <--> pick,
+          |  CheckboxCard.children(
+          |    div(stack.row(spacing.xs) ++ stack.wrap,
+          |      Tag(Tag.label := "scRNA-seq"),
+          |      Tag(Tag.label := "human")
+          |    )
+          |  )
+          |)""".stripMargin
+      )({
+        val pick = Var(true)
+        CheckboxCard(
+          CheckboxCard.title := "GSE145926",
+          CheckboxCard.description := "Bronchoalveolar lavage, 9 donors.",
+          CheckboxCard.checked <--> pick,
+          CheckboxCard.children(
+            div(stack.row(spacing.xs) ++ stack.wrap ++ css.raw("margin-top", spacing.xs.toCss),
+              Tag(Tag.label := "scRNA-seq"),
+              Tag(Tag.label := "human")
+            )
+          )
+        )
+      })
+    ),
     PageTemplate.propsTable(
       ("title",       "String",         "Card title."),
       ("description", "String",         "Card description."),
       ("checked",     "InOut[Boolean]", "Two-way binding."),
-      ("disabled",    "Boolean",        "Disables the card.")
+      ("disabled",    "Boolean",        "Disables the card."),
+      ("children",    "Slot",           "Extra content under the description.")
     )
   )
 

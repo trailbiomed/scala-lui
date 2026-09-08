@@ -28,7 +28,8 @@ object DocsIndex {
       DocEntry("stack",       "stack presets",    () => FoundationsPages.stackPage()),
       DocEntry("typo",        "typo presets",     () => FoundationsPages.typoPage()),
       DocEntry("surface-preset", "surface presets", () => FoundationsPages.surfacePage()),
-      DocEntry("interactive", "Interactive",      () => FoundationsPages.interactive())
+      DocEntry("interactive", "Interactive",      () => FoundationsPages.interactive()),
+      DocEntry("contrast",    "Contrast",         () => FoundationsPages.contrast())
     )),
     DocCategory("Layout", Seq(
       DocEntry("container",       "Container",       () => LayoutPages.container()),
@@ -127,6 +128,7 @@ object DocsIndex {
     )),
     DocCategory("Overlays", Seq(
       DocEntry("modal",              "Modal",              () => OverlayPages.modal()),
+      DocEntry("confirm-dialog",     "ConfirmDialog",      () => OverlayPages.confirmDialog()),
       DocEntry("drawer",             "Drawer",             () => OverlayPages.drawer()),
       DocEntry("fullscreen-overlay", "FullscreenOverlay",  () => OverlayPages.fullscreenOverlay()),
       DocEntry("tooltip",            "Tooltip",            () => OverlayPages.tooltip()),

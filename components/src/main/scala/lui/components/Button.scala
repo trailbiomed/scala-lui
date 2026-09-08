@@ -17,7 +17,7 @@ final class Button private[components] (val root: HtmlElement) extends Component
 
 object Button extends ComponentFactory[Button] {
 
-  enum Variant { case Primary, Secondary, Ghost }
+  enum Variant { case Primary, Secondary, Ghost, Danger }
   enum Size { case Small, Medium }
 
   val label    = Prop.in[String, Button](_.labelVar)
@@ -127,14 +127,24 @@ object Button extends ComponentFactory[Button] {
       case (Variant.Ghost, _, false) =>
         css.background(Color.transparent) ++ css.color(t.textMuted) ++
           css.border(Length.px(1), BorderStyle.Solid, Color.transparent)
+      case (Variant.Danger, true, _) =>
+        css.background(t.surfaceDim) ++ css.color(t.textSubtle) ++
+          css.border(Length.px(1), BorderStyle.Solid, Color.transparent)
+      case (Variant.Danger, false, true) =>
+        css.background(t.dangerSoft) ++ css.color(t.danger) ++
+          css.border(Length.px(1), BorderStyle.Solid, t.danger)
+      case (Variant.Danger, false, false) =>
+        css.background(t.surface) ++ css.color(t.danger) ++
+          css.border(Length.px(1), BorderStyle.Solid, t.dangerBorder)
     }
 
     // Custom focus ring — we set outline:none above, so this is the
     // keyboard-accessible focus indicator. Skip when pressed (the active
     // shadow would otherwise sit on top of the hover/active visuals).
+    val ringColor = if (v == Variant.Danger) t.danger else t.brand
     val focusRing =
-      if (i.focused && !i.pressed && !disabled)
-        css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.35).toCss}")
+      if (i.focusVisible && !i.pressed && !disabled)
+        css.raw("box-shadow", s"0 0 0 3px ${ringColor.alpha(0.35).toCss}")
       else css.raw("box-shadow", "none")
 
     base ++ sizing ++ variantStyle ++ focusRing

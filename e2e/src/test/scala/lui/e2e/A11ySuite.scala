@@ -124,19 +124,53 @@ class A11ySuite extends E2ESuite {
 
   // -- Button focus + loading --------------------------------------------
 
+  private val focusPrimary =
+    """() => {
+      |  const b = Array.from(document.querySelectorAll('button'))
+      |    .find(e => e.textContent.trim() === 'Primary');
+      |  b.focus();
+      |}""".stripMargin
+
   test("Button shows a focus ring (box-shadow) when keyboard-focused") {
     gotoSlug("button")
     val btn = page.locator("button:has-text('Primary')").first()
     btn.waitFor()
-    // Focus via JS — clicking would put it into the pressed state and suppress
-    // the focus ring per the styleFor logic.
-    page.evaluate(
-      """() => {
-        |  const b = Array.from(document.querySelectorAll('button'))
-        |    .find(e => e.textContent.trim() === 'Primary');
-        |  b.focus();
-        |}""".stripMargin
-    )
+    // A keydown puts Device.keyboardMode into keyboard navigation, which is
+    // what focusVisible — and so the ring — is gated on. Focus itself goes
+    // through JS: clicking would enter pressed state and suppress the ring.
+    page.keyboard().press("Tab")
+    page.evaluate(focusPrimary)
+    page.waitForCondition { () =>
+      val s = btn.getAttribute("style")
+      s != null && s.contains("box-shadow") && !s.contains("box-shadow: none")
+    }
+  }
+
+  test("Button draws no focus ring when focus came from a click") {
+    gotoSlug("button")
+    val btn = page.locator("button:has-text('Primary')").first()
+    btn.waitFor()
+    // A pointer press leaves keyboardMode false, so the button holds DOM focus
+    // with no ring — the :focus-visible distinction.
+    btn.click()
+    page.waitForCondition { () =>
+      val focused = page
+        .evaluate("() => document.activeElement && document.activeElement.textContent.trim()")
+        .asInstanceOf[String]
+      val s = btn.getAttribute("style")
+      focused == "Primary" && s != null && s.contains("box-shadow: none")
+    }
+  }
+
+  test("A keydown after a click brings the ring back on the focused button") {
+    gotoSlug("button")
+    val btn = page.locator("button:has-text('Primary')").first()
+    btn.waitFor()
+    btn.click()
+    // focusVisible is derived, not tracked: reaching for the keyboard while an
+    // element already holds focus has to light its ring.
+    page.keyboard().press("Shift+ArrowRight")
+    page.evaluate(focusPrimary)
     page.waitForCondition { () =>
       val s = btn.getAttribute("style")
       s != null && s.contains("box-shadow") && !s.contains("box-shadow: none")

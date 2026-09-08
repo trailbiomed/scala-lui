@@ -18,7 +18,21 @@ final class Menu private[components] (
   * and restores focus to the trigger. */
 object Menu extends ComponentFactory[Menu] {
 
-  final case class Item(key: String, label: String, icon: String = "", danger: Boolean = false)
+  /** `disabled` renders the row muted and inert: it emits nothing, and the arrow keys skip
+    * over it rather than parking focus somewhere Enter does nothing. Use it for a row that
+    * has to stay visible to explain itself — "No tags yet" — instead of relying on a key
+    * that happens to have no handler. */
+  final case class Item(
+      key: String,
+      label: String,
+      icon: String = "",
+      danger: Boolean = false,
+      disabled: Boolean = false
+  )
+
+  /** The rows arrow-key navigation and initial focus consider. Disabled rows are excluded
+    * so focus never lands where Enter does nothing. */
+  private val enabledItems = "[role='menuitem']:not([aria-disabled='true'])"
 
   val items = Prop.in[Seq[Item], Menu](_.itemsVar)
   val select = Prop.out[String, Menu](_.selectBus)
@@ -38,7 +52,7 @@ object Menu extends ComponentFactory[Menu] {
         },
         onKeyDown --> Observer[dom.KeyboardEvent] { ev =>
           val container = popover.bodySlot.ref
-          val items = container.querySelectorAll("[role='menuitem']")
+          val items = container.querySelectorAll(enabledItems)
           if (items.length > 0) {
             val active = dom.document.activeElement
             var idx = -1
@@ -78,7 +92,7 @@ object Menu extends ComponentFactory[Menu] {
     popover.root.amend(
       popover.openVar.signal.changes.filter(identity) --> Observer[Boolean] { _ =>
         val _ = scala.scalajs.js.timers.setTimeout(0) {
-          val items = popover.bodySlot.ref.querySelectorAll("[role='menuitem']")
+          val items = popover.bodySlot.ref.querySelectorAll(enabledItems)
           if (items.length > 0) {
             items.item(0) match {
               case h: dom.HTMLElement => h.focus()
@@ -97,16 +111,24 @@ object Menu extends ComponentFactory[Menu] {
     val interact = Interactive.on(root)
     root.amend(
       role := "menuitem",
+      aria.disabled := it.disabled,
+      tabIndex := (if (it.disabled) -1 else 0),
       interact.state.styled { (t, i) =>
-        val fg = if (it.danger) t.danger else t.text
-        val bg = if (i.hovered || i.focused) t.surfaceDim else Color.transparent
+        val fg =
+          if (it.disabled) t.textMuted
+          else if (it.danger) t.danger
+          else t.text
+        val bg =
+          if (it.disabled) Color.transparent
+          else if (i.hovered || i.focused) t.surfaceDim
+          else Color.transparent
         val ring =
-          if (i.focused && !i.pressed)
+          if (i.focusVisible && !i.pressed && !it.disabled)
             css.raw("box-shadow", s"0 0 0 2px ${t.brand.alpha(0.35).toCss}")
           else css.raw("box-shadow", "none")
         stack.row(spacing.sm) ++
           css.padding(Length.px(6), spacing.md) ++
-          css.cursor("pointer") ++
+          css.cursor(if (it.disabled) "default" else "pointer") ++
           css.color(fg) ++
           css.background(bg) ++
           css.borderRadius(radius.sm) ++
@@ -120,8 +142,8 @@ object Menu extends ComponentFactory[Menu] {
       },
       if (it.icon.nonEmpty) span(it.icon) else emptyNode,
       span(it.label),
-      onClick.mapTo(it.key) --> menu.selectBus.writer,
-      onClick.mapTo(false) --> menu.popover.openVar.writer
+      onClick.filter(_ => !it.disabled).mapTo(it.key) --> menu.selectBus.writer,
+      onClick.filter(_ => !it.disabled).mapTo(false) --> menu.popover.openVar.writer
     )
     root
   }

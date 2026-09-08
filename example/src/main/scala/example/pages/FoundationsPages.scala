@@ -308,9 +308,32 @@ object FoundationsPages {
         )
       )
     ),
+    PageTemplate.section("From a CSS literal")(
+      PageTemplate.paragraph(
+        "`Length` is opaque over `String`, so a bare literal does not typecheck and the " +
+          "error does not mention `Length.px`. An opt-in conversion covers the cases where " +
+          "a literal reads better: bring `scala.language.implicitConversions` into scope " +
+          "and `TextInput.width := \"120px\"` compiles. Without that import the compiler " +
+          "still demands a `Length`."
+      ),
+      codedDemo(
+        "given Conversion[String, Length]",
+        """import scala.language.implicitConversions
+          |
+          |TextInput(TextInput.width := "120px")   // via the conversion
+          |TextInput(TextInput.width := Length.px(120))   // always
+          |Length.raw("clamp(8rem, 30vw, 20rem)")  // anything the factories don't cover""".stripMargin
+      )(
+        div(
+          stack.col(spacing.xs),
+          span(typo.hint, s"""Length.raw("clamp(8rem, 30vw, 20rem)") = ${Length.raw("clamp(8rem, 30vw, 20rem)").toCss}""")
+        )
+      )
+    ),
     PageTemplate.behavior(
       "Prefer `Length.px(n)` outside the tokens module. Laminar's CSS-length traits also export `.px` on Int, and that one tends to shadow ours.",
-      "Length is an opaque type aliased to String. `.toCss` returns the underlying CSS value."
+      "Length is an opaque type aliased to String. `.toCss` returns the underlying CSS value.",
+      "`Length.raw` is the escape hatch for a value the factories don't cover — calc(), clamp(), viewport units."
     ),
     PageTemplate.noProps
   )
@@ -427,10 +450,41 @@ object FoundationsPages {
         )
       )
     ),
+    PageTemplate.section("Two styles on one element merge")(
+      PageTemplate.paragraph(
+        "Every lui style modifier — a static `Style`, a `ThemedStyle`, `signal.styled`, " +
+          "`themed` — claims its own layer on the element and writes only the properties " +
+          "it declares. Two of them therefore compose rather than race. Where both set " +
+          "the same property, the later modifier wins, which is the same last-wins rule " +
+          "that applies inside a single `Style`."
+      ),
+      codedDemo(
+        "A layout Style beside a themed one",
+        """div(
+          |  stack.col(spacing.md),                    // layout, one layer
+          |  surface.card ++ css.padding(spacing.lg),  // theme, another
+          |  someSignal.styled((t, a) => …)            // state, a third
+          |)
+          |// All three apply. The later one wins only on a property they share.""".stripMargin
+      )(
+        div(
+          stack.col(spacing.md),
+          surface.card ++ css.padding(spacing.lg),
+          span(typo.body, "A flex column…"),
+          span(typo.body, "…inside a card surface. Both layers applied.")
+        )
+      ),
+      PageTemplate.paragraph(
+        "Composing with `++` into a single `Style` is still the clearest thing to write " +
+          "when the decls belong together — it puts the last-wins resolution where a " +
+          "reader can see it."
+      )
+    ),
     PageTemplate.behavior(
       "Composition rules: Style ++ Style = Style. ThemedStyle ++ Style (or vice versa) = ThemedStyle. Signal[Style] only via .styled.",
       "CSS last-wins inside a single Style. `typo.label ++ css.fontWeight(SemiBold)` upgrades the weight.",
-      "Two separate Style modifiers on the same element both call `styleAttr := toCss`, and the second wipes out the first. Compose with `++` into a single Style instead of passing two."
+      "Only the properties lui declared are ever removed, so a lui Style can sit alongside Laminar's own style setters on the same element.",
+      "A dynamic layer that stops declaring a property releases it: a `styled` that emits `box-shadow` only while focused leaves whatever a lower layer set once focus goes."
     ),
     PageTemplate.noProps
   )
@@ -544,7 +598,10 @@ object FoundationsPages {
     ),
     PageTemplate.behavior(
       "Each preset is a ThemedStyle, so it composes with ++.",
-      "Override individual decls by appending: `typo.label ++ css.fontWeight(FontWeight.SemiBold)`."
+      "Override individual decls by appending: `typo.label ++ css.fontWeight(FontWeight.SemiBold)`.",
+      "`hint` and `eyebrow` resolve their color through `textMuted`, not `textSubtle`. Both carry real text — a field's hint, a caveat, a provenance line, a section label — and `textSubtle` sits below WCAG AA on a light surface by design.",
+      "`textSubtle` is the decoration step of the scale: separators, out-of-month days, disabled labels. Reach for `t.textSubtle` directly when that is what you mean.",
+      "`hint` is one type size below `muted`, so it stays visually subordinate without going illegible."
     ),
     PageTemplate.noProps
   )
@@ -697,10 +754,136 @@ object FoundationsPages {
         host
       }
     ),
+    PageTemplate.section("focusVisible — rings that don't fire on click")(
+      PageTemplate.paragraph(
+        "`focused` is raw DOM focus, and a mouse click sets it. A ring drawn off `focused` " +
+          "therefore appears on every click, which is not what anyone means by a focus " +
+          "ring. `focusVisible` is `focused` narrowed to focus the keyboard put there — " +
+          "the distinction CSS calls `:focus-visible`, which no inline style can express."
+      ),
+      PageTemplate.paragraph(
+        "Draw rings off `focusVisible`; keep backgrounds and other \"this is the current " +
+          "item\" affordances on `focused`. A menu opened by click and walked with the " +
+          "arrow keys still has to shade the row you are on."
+      ),
+      codedDemo(
+        "i.focusVisible",
+        """ix.state.styled { (t, i) =>
+          |  val ring =
+          |    if (i.focusVisible && !i.pressed)
+          |      css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.35).toCss}")
+          |    else css.raw("box-shadow", "none")
+          |  css.background(if (i.focused) t.brandSoft else t.surface) ++ ring
+          |}""".stripMargin
+      ) {
+        val host = button(typ := "button")
+        val ix = Interactive.on(host)
+        host.amend(
+          ix.state.styled { (t, i) =>
+            val ring =
+              if (i.focusVisible && !i.pressed)
+                css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.35).toCss}")
+              else css.raw("box-shadow", "none")
+            css.padding(spacing.md, spacing.xl) ++
+              css.borderRadius(radius.md) ++
+              css.border(Length.px(1), BorderStyle.Solid, t.border) ++
+              css.background(if (i.focused) t.brandSoft else t.surface) ++
+              css.color(t.text) ++
+              css.fontSize(fontSizes.xl) ++
+              css.raw("font-family", "inherit") ++
+              css.cursor("pointer") ++
+              css.raw("outline", "none") ++
+              ring
+          },
+          "Click me, then Tab to me"
+        )
+        div(
+          stack.col(spacing.md),
+          host,
+          span(typo.hint, "Clicking tints the background but draws no ring. Tabbing to it does both.")
+        )
+      }
+    ),
     PageTemplate.behavior(
-      "InteractionState exposes three Booleans: `hovered`, `focused`, `pressed`. Subscribe via `interact.state.signal` for the raw state.",
+      "InteractionState exposes four Booleans: `hovered`, `focused`, `pressed`, `focusVisible`. Subscribe via `interact.state` for the whole record.",
       "Individual Vars are also exposed: `interact.hovered.signal`, `interact.focused.signal`, `interact.pressed.signal`.",
+      "`focusVisible` is derived, not tracked: it is `focused && Device.keyboardMode`, so putting the mouse down and then reaching for the keyboard makes the ring appear on the element that already has focus.",
+      "`Device.keyboardMode` counts any keydown but a bare modifier as keyboard navigation, and any pointer press as not — on pointerdown, because focus lands there. Both listeners are on the capture phase so the mode is settled before any element's own focus handler runs.",
+      "For a component that tracks focus in its own Var rather than through `Interactive`, `Interactive.focusVisible(focusedSignal)` applies the same narrowing.",
+      "Text fields are the deliberate exception: TextInput, Textarea, NumberInput, PasswordInput and TagsInput still ring on plain `focused`, because clicking into one is a deliberate act of placing a caret and every native input rings on click.",
       "Listeners install only on first access of `el.interact`, so non-interactive components pay nothing for the lazy."
+    ),
+    PageTemplate.noProps
+  )
+
+  // ---------------------------------------------------------------------------
+  def contrast(): HtmlElement = PageTemplate(
+    title = "Contrast",
+    summary = "WCAG 2.1 contrast arithmetic over Color, plus an audit of the pairings lui's own components draw."
+  )(
+    PageTemplate.section("Why it lives here")(
+      PageTemplate.paragraph(
+        "lui owns both halves of every pairing a component makes — the foreground token " +
+          "and the surface it lands on. A consumer can pick a different component but not " +
+          "a different pair, so a failing pairing can only be fixed here. `Contrast.audit` " +
+          "is checked in lui's own test suite, which is what keeps a token change from " +
+          "quietly dropping a pairing below AA."
+      ),
+      codedDemo(
+        "Contrast.ratio / .failures",
+        """Contrast.ratio(t.onBrand, t.brand)   // 5.47
+          |Contrast.aa                          // 4.5
+          |Contrast.failures(Theme.light)       // Nil
+          |
+          |// Every shipped theme, gated in core's test suite:
+          |Theme.all.foreach(t => assert(Contrast.failures(t).isEmpty))""".stripMargin
+      ) {
+        div(
+          stack.col(spacing.sm),
+          children <-- Theme.signal.map { t =>
+            val worst = Contrast.audit(t).sortBy(_.measured).take(6)
+            worst.map { p =>
+              div(
+                stack.row(spacing.md),
+                span(typo.label ++ css.width(Length.px(220)), s"${p.foreground} on ${p.background}"),
+                span(typo.body, f"${p.measured}%.2f:1"),
+                span(typo.hint, if (p.passes) "AA" else "below AA")
+              )
+            }.toList
+          }
+        )
+      },
+      PageTemplate.paragraph(
+        "The six tightest pairings in the active theme, measured live. Switch the theme to " +
+          "re-measure."
+      )
+    ),
+    PageTemplate.section("Enumerating the tokens")(
+      PageTemplate.paragraph(
+        "`Theme.toMap` and `palette.all` expose every token by name, so an external gate " +
+          "can read the real values instead of transcribing them. `Theme.all` lists the " +
+          "themes lui ships."
+      ),
+      codedDemo(
+        "Theme.toMap / palette.all",
+        """Theme.light.toMap("brand")   // "rgb(15, 118, 110)"
+          |Theme.light.colors("brand")  // Color(15, 118, 110, 1.0)
+          |palette.all("teal700")       // Color(15, 118, 110, 1.0)
+          |Theme.all.map(_.name)        // Seq("light", "dark", "monokai")""".stripMargin
+      ) {
+        div(
+          stack.col(spacing.xs),
+          span(typo.hint, s"palette.all holds ${palette.all.size} stops."),
+          span(typo.hint, child.text <-- Theme.signal.map(t => s"${t.name} exposes ${t.toMap.size} semantic tokens.")),
+          span(typo.hint, child.text <-- Theme.signal.map(t => s"brand = ${t.toMap.getOrElse("brand", "")}"))
+        )
+      }
+    ),
+    PageTemplate.behavior(
+      "`luminance` follows WCAG 2.1 relative luminance and flattens a translucent color onto white first.",
+      "`ratio(fg, bg)` composites `fg` onto `bg`; flatten a translucent background yourself with `Color.over` before passing it.",
+      "`textSubtle` is deliberately absent from the audit: it is the decoration step of the text scale — separators, out-of-month days, disabled labels. `typo.hint` and `typo.eyebrow` resolve through `textMuted` precisely so no preset puts real text at that contrast.",
+      "Borders are not audited. WCAG 1.4.11 asks 3:1 of a control's visual boundary, which lui's resting border deliberately does not meet — the boundary of a resting field is not the affordance."
     ),
     PageTemplate.noProps
   )

@@ -42,7 +42,7 @@ object CloseButton extends ComponentFactory[CloseButton] {
             else if (i.hovered) (t.surfaceDim, t.text)
             else (Color.transparent, t.textMuted)
           val focusRing =
-            if (i.focused && !i.pressed && !d)
+            if (i.focusVisible && !i.pressed && !d)
               css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.35).toCss}")
             else css.raw("box-shadow", "none")
           stack.centerAll ++

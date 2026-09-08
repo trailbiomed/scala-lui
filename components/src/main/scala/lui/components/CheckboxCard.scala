@@ -4,14 +4,21 @@ import com.raquo.laminar.api.L.{Mod as _, *}
 import lui.*
 import lui.style.*
 
-final class CheckboxCard private[components] (val root: HtmlElement) extends Component {
+final class CheckboxCard private[components] (
+    val root: HtmlElement,
+    private[components] val bodySlot: HtmlElement
+) extends Component {
   private[components] val titleVar: Var[String] = Var("")
   private[components] val descriptionVar: Var[String] = Var("")
   private[components] val checkedVar: Var[Boolean] = Var(false)
   private[components] val disabledVar: Var[Boolean] = Var(false)
 }
 
-/** A checkbox presented as a clickable card with a title and description. */
+/** A checkbox presented as a clickable card with a title and description.
+  *
+  * `children(...)` adds arbitrary content under the description — a tag row, a metric, a
+  * thumbnail — so the card doesn't have to be rebuilt by hand the first time it needs to
+  * carry more than two lines of text. */
 object CheckboxCard extends ComponentFactory[CheckboxCard] {
 
   val title = Prop.in[String, CheckboxCard](_.titleVar)
@@ -19,12 +26,17 @@ object CheckboxCard extends ComponentFactory[CheckboxCard] {
   val checked = Prop.inOut[Boolean, CheckboxCard](_.checkedVar)
   val disabled = Prop.in[Boolean, CheckboxCard](_.disabledVar)
 
+  /** Extra content below the description, inside the card's text column. */
+  def children(content: Modifier[HtmlElement]*): Mod[CheckboxCard] = el =>
+    el.bodySlot.amend(content*)
+
   private val boxSize: Length = Length.px(16)
 
   override protected def build: CheckboxCard = {
     val box = span()
+    val bodySlot = div()
     val root = button(typ := "button")
-    val el = new CheckboxCard(root)
+    val el = new CheckboxCard(root, bodySlot)
 
     root.amend(
       role := "checkbox",
@@ -38,7 +50,7 @@ object CheckboxCard extends ComponentFactory[CheckboxCard] {
             else if (i.hovered) t.borderActive
             else t.border
           val ring =
-            if (i.focused && !i.pressed && !d)
+            if (i.focusVisible && !i.pressed && !d)
               css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.3).toCss}")
             else css.raw("box-shadow", "none")
           stack.row(spacing.md) ++
@@ -60,9 +72,10 @@ object CheckboxCard extends ComponentFactory[CheckboxCard] {
         Observer[Unit](_ => el.checkedVar.update(c => !c)),
       box,
       div(
-        stack.col(spacing.xs),
+        stack.col(spacing.xs) ++ stack.grow ++ css.minWidth(Length.zero),
         span(typo.label, child.text <-- el.titleVar.signal),
-        span(typo.muted, child.text <-- el.descriptionVar.signal)
+        span(typo.muted, child.text <-- el.descriptionVar.signal),
+        bodySlot
       )
     )
 

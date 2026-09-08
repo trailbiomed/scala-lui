@@ -26,7 +26,7 @@ object Surface {
       interact.state.styled { (t, i) =>
         val bd = if (i.hovered) t.borderActive else t.border
         val ring =
-          if (i.focused && !i.pressed)
+          if (i.focusVisible && !i.pressed)
             css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.25).toCss}")
           else css.raw("box-shadow", "none")
         css.background(t.surface) ++

@@ -53,17 +53,21 @@ object Theme {
     text = palette.neutral900,
     textMuted = palette.neutral500,
     textSubtle = palette.neutral400,
-    brand = palette.teal600,
+    // teal700, emerald700 and red800 rather than the 600 stops: each pairing below
+    // clears WCAG AA 4.5:1 against the surface it is drawn on, which the 600 stops did
+    // not (white on teal600 is 3.74, emerald600 on emerald50 is 3.58, red600 on red50
+    // is 4.41). See `Contrast`, which gates all of them.
+    brand = palette.teal700,
     brandSoft = palette.teal50,
-    brandHover = palette.teal700,
+    brandHover = palette.teal800,
     onBrand = palette.white,
-    success = palette.emerald600,
+    success = palette.emerald700,
     successSoft = palette.emerald50,
     successBorder = palette.emerald300,
     warning = palette.amber800,
     warningSoft = palette.amber100,
     warningBorder = palette.amber300,
-    danger = palette.red600,
+    danger = palette.red800,
     dangerSoft = palette.red50,
     dangerBorder = palette.red300,
     info = palette.blue600,
@@ -93,11 +97,13 @@ object Theme {
     warning = Color.hex("#fd971f"),
     warningSoft = Color(253, 151, 31, 0.18),
     warningBorder = Color.hex("#b8741a"),
-    danger = Color.hex("#f92672"),
-    dangerSoft = Color(249, 38, 114, 0.18),
+    // Lighter than Monokai's own #f92672 / #ae81ff: those measure 3.34 and 3.94 against
+    // their own soft fills, below AA. `Contrast` gates both.
+    danger = Color.hex("#fb8ab0"),
+    dangerSoft = Color(251, 138, 176, 0.18),
     dangerBorder = Color.hex("#b3185a"),
-    info = Color.hex("#ae81ff"),
-    infoSoft = Color(174, 129, 255, 0.18),
+    info = Color.hex("#c4a7ff"),
+    infoSoft = Color(196, 167, 255, 0.18),
     infoBorder = Color.hex("#7b5cb5")
   )
 
@@ -130,6 +136,45 @@ object Theme {
     infoSoft = Color(30, 58, 138, 0.30),
     infoBorder = palette.blue600
   )
+
+  /** Every semantic token of this theme by name, values as CSS strings. Lets a consumer
+    * enumerate the theme at runtime — contrast audits, generated documentation, exporting
+    * to another toolchain — instead of transcribing `Theme.scala`. */
+  extension (t: Theme) {
+    def toMap: Map[String, String] = t.colors.view.mapValues(_.toCss).toMap
+
+    /** Every semantic token of this theme by name. */
+    def colors: Map[String, Color] = Map(
+      "bg" -> t.bg,
+      "surface" -> t.surface,
+      "surfaceDim" -> t.surfaceDim,
+      "backdrop" -> t.backdrop,
+      "border" -> t.border,
+      "borderActive" -> t.borderActive,
+      "text" -> t.text,
+      "textMuted" -> t.textMuted,
+      "textSubtle" -> t.textSubtle,
+      "brand" -> t.brand,
+      "brandSoft" -> t.brandSoft,
+      "brandHover" -> t.brandHover,
+      "onBrand" -> t.onBrand,
+      "success" -> t.success,
+      "successSoft" -> t.successSoft,
+      "successBorder" -> t.successBorder,
+      "warning" -> t.warning,
+      "warningSoft" -> t.warningSoft,
+      "warningBorder" -> t.warningBorder,
+      "danger" -> t.danger,
+      "dangerSoft" -> t.dangerSoft,
+      "dangerBorder" -> t.dangerBorder,
+      "info" -> t.info,
+      "infoSoft" -> t.infoSoft,
+      "infoBorder" -> t.infoBorder
+    )
+  }
+
+  /** The themes lui ships, in the order the picker shows them. */
+  val all: Seq[Theme] = Seq(light, dark, monokai)
 
   /** Global reactive theme. Components subscribe via `Theme.signal`. */
   val current: Var[Theme] = Var(light)

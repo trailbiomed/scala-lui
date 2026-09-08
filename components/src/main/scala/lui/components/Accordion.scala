@@ -11,6 +11,7 @@ final class Accordion private[components] (
   private[components] val titleVar: Var[String] = Var("")
   private[components] val summaryVar: Var[String] = Var("")
   private[components] val openVar: Var[Boolean] = Var(false)
+  private[components] val chevronSizeVar: Var[Length] = Var(fontSizes.lg)
   private[components] val headerHover: Var[Boolean] = Var(false)
 }
 
@@ -19,6 +20,9 @@ object Accordion extends ComponentFactory[Accordion] {
   val title = Prop.in[String, Accordion](_.titleVar)
   val summary = Prop.in[String, Accordion](_.summaryVar)
   val open = Prop.inOut[Boolean, Accordion](_.openVar)
+
+  /** Size of the disclosure chevron. Defaults to the header's own type size. */
+  val chevronSize = Prop.in[Length, Accordion](_.chevronSizeVar)
 
   def body(content: Modifier[HtmlElement]*): Mod[Accordion] = el =>
     el.bodySlot.amend(content*)
@@ -63,9 +67,10 @@ object Accordion extends ComponentFactory[Accordion] {
         stack.row(spacing.md),
         span(typo.muted, child.text <-- el.summaryVar.signal),
         span(
-          el.openVar.signal.styled { (_, isOpen) =>
-            stack.row() ++ css.transition("transform", 200) ++
-              css.raw("transform", if (isOpen) "rotate(180deg)" else "rotate(0deg)")
+          Signal.combine(el.openVar.signal, el.chevronSizeVar.signal).styled {
+            case (_, (isOpen, size)) =>
+              stack.row() ++ css.fontSize(size) ++ css.transition("transform", 200) ++
+                css.raw("transform", if (isOpen) "rotate(180deg)" else "rotate(0deg)")
           },
           "▾"
         )

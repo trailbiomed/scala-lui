@@ -44,11 +44,169 @@ object OverlayPages {
         )
       })
     ),
+    PageTemplate.section("Chrome")(
+      PageTemplate.paragraph(
+        "`divided := false` collapses the rule under the header and the footer's fill and " +
+          "rule. A four-line dialog otherwise arrives as three stacked bands, which reads " +
+          "much heavier than the content warrants."
+      ),
+      PageTemplate.codedDemo(
+        "Modal.divided",
+        """Modal(
+          |  Modal.open <--> open,
+          |  Modal.title := "Rename run",
+          |  Modal.divided := false,
+          |  Modal.body(TextInput(TextInput.value <--> name)),
+          |  Modal.footer(Button(Button.label := "Save"))
+          |)""".stripMargin
+      )({
+        val open = Var(false)
+        val name = Var("run-0417")
+        div(
+          Button(
+            Button.label := "Open undivided dialog",
+            Button.variant := Button.Variant.Secondary,
+            Button.click.foreach(_ => open.set(true))
+          ),
+          Modal(
+            Modal.open <--> open,
+            Modal.title := "Rename run",
+            Modal.divided := false,
+            Modal.body(TextInput(TextInput.value <--> name)),
+            Modal.footer(
+              Button(Button.label := "Cancel", Button.variant := Button.Variant.Ghost, Button.click.foreach(_ => open.set(false))),
+              Button(Button.label := "Save", Button.click.foreach(_ => open.set(false)))
+            )
+          )
+        )
+      })
+    ),
+    PageTemplate.section("Locked while busy")(
+      PageTemplate.paragraph(
+        "`busy := true` makes the dialog undismissable outright — no Escape, no backdrop, " +
+          "no close button — for the span of a request it started. Once the request has " +
+          "gone, closing the window does not recall it. `ConfirmDialog` wires this to its " +
+          "own footer buttons."
+      ),
+      PageTemplate.codedDemo(
+        "Modal.busy",
+        """Modal(
+          |  Modal.open <--> open,
+          |  Modal.busy <-- saving.signal,
+          |  Modal.title := "Publishing",
+          |  Modal.body(span(typo.body, "Uploading the bundle…"))
+          |)""".stripMargin
+      )({
+        val open = Var(false)
+        val busy = Var(false)
+        div(stack.row(spacing.md) ++ stack.wrap,
+          Button(
+            Button.label := "Open locked dialog",
+            Button.variant := Button.Variant.Secondary,
+            Button.click.foreach { _ => busy.set(true); open.set(true) }
+          ),
+          Modal(
+            Modal.open <--> open,
+            Modal.busy <-- busy.signal,
+            Modal.divided := false,
+            Modal.title := "Publishing",
+            Modal.body(
+              div(stack.col(spacing.lg),
+                span(typo.body, "Escape, the backdrop and the × are all inert while this is busy."),
+                div(stack.row(spacing.md) ++ css.justifyContent("flex-end"),
+                  Button(
+                    Button.label := "Finish",
+                    Button.click.foreach { _ => busy.set(false); open.set(false) }
+                  )
+                )
+              )
+            )
+          )
+        )
+      })
+    ),
     PageTemplate.propsTable(
-      ("open",  "InOut[Boolean]", "Open state."),
-      ("title", "String",         "Dialog title."),
-      ("width", "Length",         "Max width. Default 380px."),
-      ("body",  "Slot",           "Dialog content.")
+      ("open",        "InOut[Boolean]", "Open state."),
+      ("title",       "String",         "Dialog title."),
+      ("width",       "Length",         "Max width. Default 380px."),
+      ("dismissible", "Boolean",        "Backdrop click, Escape and the close button. Default true."),
+      ("busy",        "Boolean",        "Locks the dialog shut regardless of `dismissible`."),
+      ("divided",     "Boolean",        "Header rule and footer bar. Default true."),
+      ("body",        "Slot",           "Dialog content."),
+      ("footer",      "Slot",           "Trailing action bar."),
+      ("attr",        "Modifier*",      "Arbitrary modifiers on the dialog card.")
+    )
+  )
+
+  def confirmDialog(): HtmlElement = PageTemplate(
+    title = "ConfirmDialog",
+    summary = "A Modal that owns its footer: cancel, confirm, a progress label, and the rule that it cannot be dismissed while the action is in flight."
+  )(
+    PageTemplate.section("Demo")(
+      PageTemplate.codedDemo(
+        "ConfirmDialog",
+        """val confirming = Var(false)
+          |val deleting   = Var(false)
+          |ConfirmDialog(
+          |  ConfirmDialog.open <--> confirming,
+          |  ConfirmDialog.title := "Delete project",
+          |  ConfirmDialog.message := "This removes the project and every run under it.",
+          |  ConfirmDialog.confirmLabel := "Delete",
+          |  ConfirmDialog.busyLabel := "Deleting…",
+          |  ConfirmDialog.destructive := true,
+          |  ConfirmDialog.busy <-- deleting.signal,
+          |  ConfirmDialog.confirm.foreach(_ => startDelete())
+          |)""".stripMargin
+      )({
+        val confirming = Var(false)
+        val deleting = Var(false)
+        val log = Var("")
+        div(stack.col(spacing.md),
+          Button(
+            Button.label := "Delete project",
+            Button.variant := Button.Variant.Danger,
+            Button.click.foreach(_ => confirming.set(true))
+          ),
+          ConfirmDialog(
+            ConfirmDialog.open <--> confirming,
+            ConfirmDialog.title := "Delete project",
+            ConfirmDialog.message := "This removes the project and every run under it.",
+            ConfirmDialog.confirmLabel := "Delete",
+            ConfirmDialog.busyLabel := "Deleting…",
+            ConfirmDialog.destructive := true,
+            ConfirmDialog.busy <-- deleting.signal,
+            ConfirmDialog.confirm.foreach { _ =>
+              deleting.set(true)
+              val _ = scala.scalajs.js.timers.setTimeout(1200) {
+                deleting.set(false)
+                confirming.set(false)
+                log.set("deleted")
+              }
+            },
+            ConfirmDialog.dismissed.foreach(_ => log.set("dismissed"))
+          ),
+          span(typo.hint, child.text <-- log.signal)
+        )
+      })
+    ),
+    PageTemplate.behavior(
+      "While `busy` is true the dialog is locked shut — Escape, the backdrop and the close button are all inert, and both footer buttons are disabled. Once `confirm` has fired the request has gone, and closing the window does not recall it.",
+      "The confirm button reads `busyLabel` while busy, falling back to `confirmLabel` with an ellipsis.",
+      "`destructive := true` renders the confirm button as `Button.Variant.Danger`.",
+      "`dismissed` covers every way out — cancel, Escape, backdrop, close button — and clears `open` itself."
+    ),
+    PageTemplate.propsTable(
+      ("open",         "InOut[Boolean]", "Open state."),
+      ("title",        "String",         "Dialog title."),
+      ("message",      "String",         "One line of body text."),
+      ("confirmLabel", "String",         "Confirm button label. Default \"Confirm\"."),
+      ("busyLabel",    "String",         "Confirm button label while busy. Defaults to `confirmLabel` + \"…\"."),
+      ("cancelLabel",  "String",         "Cancel button label. Default \"Cancel\"."),
+      ("busy",         "Boolean",        "The confirmed action is in flight. Locks the dialog."),
+      ("destructive",  "Boolean",        "Renders the confirm button as Danger."),
+      ("confirm",      "Out[Unit]",      "The confirm button was activated."),
+      ("dismissed",    "Out[Unit]",      "The user backed out."),
+      ("body",         "Slot",           "Body content in place of `message`.")
     )
   )
 
@@ -229,9 +387,39 @@ object OverlayPages {
         )
       })
     ),
+    PageTemplate.section("Disabled items")(
+      PageTemplate.paragraph(
+        "`Item(disabled = true)` renders the row muted and inert: it emits nothing, and " +
+          "the arrow keys skip over it rather than parking focus somewhere Enter does " +
+          "nothing. Use it for a row that has to stay visible to explain itself."
+      ),
+      PageTemplate.codedDemo(
+        "Menu.Item(disabled = true)",
+        """Menu(
+          |  Menu.items := Seq(
+          |    Menu.Item("add", "Add tag", "＋"),
+          |    Menu.Item("none", "No tags yet", disabled = true)
+          |  ),
+          |  Menu.trigger(Button(Button.label := "Tags"))
+          |)""".stripMargin
+      )({
+        val last = Var("")
+        div(stack.col(spacing.sm),
+          Menu(
+            Menu.items := Seq(
+              Menu.Item("add", "Add tag", "＋"),
+              Menu.Item("none", "No tags yet", disabled = true)
+            ),
+            Menu.select --> last.writer,
+            Menu.trigger(Button(Button.label := "Tags", Button.variant := Button.Variant.Secondary))
+          ),
+          span(typo.hint, child.text <-- last.signal.map(s => if (s.isEmpty) "" else s"selected: $s"))
+        )
+      })
+    ),
     PageTemplate.propsTable(
-      ("items",   "Seq[Menu.Item]", "Item(key, label, icon, danger) entries."),
-      ("select",  "Out[String]",    "Emits the selected item's key."),
+      ("items",   "Seq[Menu.Item]", "Item(key, label, icon, danger, disabled) entries."),
+      ("select",  "Out[String]",    "Emits the selected item's key. Disabled items emit nothing."),
       ("trigger", "Slot",           "The clickable trigger element.")
     )
   )

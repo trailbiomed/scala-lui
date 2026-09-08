@@ -9,20 +9,28 @@ object ButtonPages {
 
   def button(): HtmlElement = PageTemplate(
     title = "Button",
-    summary = "A common action surface. Three variants: primary, secondary, ghost."
+    summary = "A common action surface. Four variants: primary, secondary, ghost, danger."
   )(
     PageTemplate.section("Variants")(
       PageTemplate.codedDemo(
         "Button.variant",
         """Button(Button.label := "Primary",   Button.variant := Button.Variant.Primary)
           |Button(Button.label := "Secondary", Button.variant := Button.Variant.Secondary)
-          |Button(Button.label := "Ghost",     Button.variant := Button.Variant.Ghost)""".stripMargin
+          |Button(Button.label := "Ghost",     Button.variant := Button.Variant.Ghost)
+          |Button(Button.label := "Delete",    Button.variant := Button.Variant.Danger)""".stripMargin
       )(
         div(stack.row(spacing.md) ++ stack.wrap,
           Button(Button.label := "Primary",   Button.variant := Button.Variant.Primary),
           Button(Button.label := "Secondary", Button.variant := Button.Variant.Secondary),
-          Button(Button.label := "Ghost",     Button.variant := Button.Variant.Ghost)
+          Button(Button.label := "Ghost",     Button.variant := Button.Variant.Ghost),
+          Button(Button.label := "Delete",    Button.variant := Button.Variant.Danger)
         )
+      ),
+      PageTemplate.paragraph(
+        "`Danger` is the destructive action: `t.danger` text on the plain surface, filling " +
+          "with `dangerSoft` on hover, and a danger-tinted focus ring rather than the " +
+          "brand one. Reach for it on the confirming button of a delete, not on the " +
+          "control that opens the dialog."
       )
     ),
     PageTemplate.section("Sizes")(
@@ -67,7 +75,7 @@ object ButtonPages {
     ),
     PageTemplate.propsTable(
       ("label",    "String",       "Button text."),
-      ("variant",  "Primary|Secondary|Ghost", "Visual style."),
+      ("variant",  "Primary|Secondary|Ghost|Danger", "Visual style."),
       ("size",     "Small|Medium",            "Size scale."),
       ("disabled", "Boolean",      "Disables interaction."),
       ("loading",  "Boolean",      "Shows a spinner; disables clicks."),

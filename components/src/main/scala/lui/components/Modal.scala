@@ -14,8 +14,14 @@ final class Modal private[components] (
   private[components] val widthVar: Var[Length] = Var(Length.px(380))
   private[components] val titleVar: Var[String] = Var("")
   private[components] val dismissibleVar: Var[Boolean] = Var(true)
+  private[components] val busyVar: Var[Boolean] = Var(false)
+  private[components] val dividedVar: Var[Boolean] = Var(true)
   private[components] val hasFooterVar: Var[Boolean] = Var(false)
   private[components] val closeBus: EventBus[Unit] = new EventBus
+
+  /** Whether the user is currently allowed to dismiss: `dismissible` and not `busy`. */
+  private[components] val canDismiss: Signal[Boolean] =
+    Signal.combine(dismissibleVar.signal, busyVar.signal).map { case (d, b) => d && !b }
 
   /** Fires whenever the user dismisses the modal — backdrop click, Escape, the
     * built-in close button, or any external sink wired to `Modal.close`. */
@@ -32,7 +38,23 @@ object Modal extends ComponentFactory[Modal] {
     * and the built-in close button is hidden. Defaults to `true`. */
   val dismissible = Prop.in[Boolean, Modal](_.dismissibleVar)
 
+  /** While `true` the dialog cannot be dismissed at all — no Escape, no backdrop click,
+    * no close button — regardless of `dismissible`. Set it for the span of a request the
+    * dialog started: it has already gone, and closing the window does not recall it.
+    * Restores the previous dismissibility when it goes back to `false`. */
+  val busy = Prop.in[Boolean, Modal](_.busyVar)
+
+  /** Chrome between the three slots: a rule under the header, and a filled, ruled footer
+    * bar. `true` by default. Turn it off for a short dialog, where three stacked bands
+    * read far heavier than the content warrants. */
+  val divided = Prop.in[Boolean, Modal](_.dividedVar)
+
   val close = Prop.out[Unit, Modal](_.closeBus)
+
+  /** Apply arbitrary modifiers to the dialog card — the element inside the backdrop that
+    * carries the header, body and footer. Use it for attributes and chrome overrides the
+    * props don't surface. */
+  def attr(mods: Modifier[HtmlElement]*): Mod[Modal] = el => el.cardEl.amend(mods*)
 
   def body(content: Modifier[HtmlElement]*): Mod[Modal] = el =>
     el.bodySlot.amend(content*)
@@ -74,7 +96,7 @@ object Modal extends ComponentFactory[Modal] {
         },
       // Backdrop click closes when dismissible. Card stops propagation below.
       onClick.mapToUnit
-        .filter(_ => el.openVar.now() && el.dismissibleVar.now())
+        .filter(_ => el.openVar.now() && el.dismissibleVar.now() && !el.busyVar.now())
         --> el.closeBus.writer,
       el.closeBus.events.mapTo(false) --> el.openVar.writer,
     )
@@ -94,12 +116,16 @@ object Modal extends ComponentFactory[Modal] {
       aria.labelledBy := labelId,
       onClick.stopPropagation.mapToUnit --> Observer[Unit](_ => ()),
       div(
-        themed(t =>
+        el.dividedVar.signal.styled { (t, dividedOn) =>
           stack.between(spacing.md) ++
             css.alignItems("flex-start") ++
             css.padding(spacing.md, spacing.xxl) ++
-            css.borderBottom(Length.px(1), BorderStyle.Solid, t.border)
-        ),
+            css.borderBottom(
+              Length.px(1),
+              BorderStyle.Solid,
+              if (dividedOn) t.border else Color.transparent
+            )
+        },
         div(
           idAttr := labelId,
           themed(t =>
@@ -109,7 +135,7 @@ object Modal extends ComponentFactory[Modal] {
           ),
           child.text <-- el.titleVar.signal,
         ),
-        child.maybe <-- el.dismissibleVar.signal.map { d =>
+        child.maybe <-- el.canDismiss.map { d =>
           if (d) Some(CloseButton(CloseButton.click.mapTo(()) --> el.closeBus.writer).root)
           else None
         },
@@ -122,13 +148,17 @@ object Modal extends ComponentFactory[Modal] {
         if (has)
           Some(
             div(
-              themed(t =>
+              el.dividedVar.signal.styled { (t, dividedOn) =>
                 stack.row(spacing.md) ++
                   css.justifyContent("flex-end") ++
                   css.padding(spacing.md, spacing.xxl) ++
-                  css.background(t.surfaceDim) ++
-                  css.borderTop(Length.px(1), BorderStyle.Solid, t.border)
-              ),
+                  css.background(if (dividedOn) t.surfaceDim else t.surface) ++
+                  css.borderTop(
+                    Length.px(1),
+                    BorderStyle.Solid,
+                    if (dividedOn) t.border else Color.transparent
+                  )
+              },
               footerSlot,
             )
           )
@@ -141,7 +171,7 @@ object Modal extends ComponentFactory[Modal] {
     Overlay.install(
       containerEl = cardEl,
       openSignal = el.openVar.signal,
-      close = () => if (el.dismissibleVar.now()) el.closeBus.writer.onNext(()),
+      close = () => if (el.dismissibleVar.now() && !el.busyVar.now()) el.closeBus.writer.onNext(()),
       trapFocus = true
     )
 

@@ -193,10 +193,10 @@ object TabPanel extends ComponentFactory[TabPanel] {
       else t.textMuted
     val borderColor =
       if (isActive) t.brand
-      else if (i.focused && !i.pressed) t.brand.alpha(0.5)
+      else if (i.focusVisible && !i.pressed) t.brand.alpha(0.5)
       else Color.transparent
     val bg =
-      if (i.focused && !i.pressed) t.brandSoft
+      if (i.focusVisible && !i.pressed) t.brandSoft
       else Color.transparent
     css.padding(spacing.md, spacing.xl) ++
       css.fontSize(fontSizes.lg) ++
@@ -216,13 +216,13 @@ object TabPanel extends ComponentFactory[TabPanel] {
 
   private def pillsStyle(t: Theme, isActive: Boolean, i: InteractionState): Style = {
     val (bg, fg) =
-      if (isActive && i.focused && !i.pressed) (t.brandSoft, t.brand)
+      if (isActive && i.focusVisible && !i.pressed) (t.brandSoft, t.brand)
       else if (isActive)                       (t.surface,   t.brand)
-      else if (i.focused && !i.pressed)        (t.brandSoft, t.brand)
+      else if (i.focusVisible && !i.pressed)        (t.brandSoft, t.brand)
       else if (i.hovered)                      (Color.transparent, t.brand)
       else                                     (Color.transparent, t.textMuted)
     val shadow =
-      if (isActive && !(i.focused && !i.pressed)) "0 1px 3px rgba(0,0,0,0.08)"
+      if (isActive && !(i.focusVisible && !i.pressed)) "0 1px 3px rgba(0,0,0,0.08)"
       else "none"
     css.padding(Length.px(4), Length.px(9)) ++
       css.fontSize(fontSizes.md) ++

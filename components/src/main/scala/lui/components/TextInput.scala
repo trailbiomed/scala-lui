@@ -17,7 +17,7 @@ final class TextInput private[components] (val root: HtmlElement) extends Compon
   private[components] val invalidVar: Var[Boolean] = Var(false)
   private[components] val variantVar: Var[TextInput.Variant] = Var(TextInput.Variant.Text)
   private[components] val alignVar: Var[TextAlign] = Var(TextAlign.Left)
-  private[components] val widthVar: Var[Length] = Var(Length.auto)
+  private[components] val widthVar: Var[Length] = Var(Length.pct(100))
   private[components] val fontSizeVar: Var[Length] = Var(fontSizes.xl)
   private[components] val focused: Var[Boolean] = Var(false)
 }
@@ -33,6 +33,8 @@ object TextInput extends ComponentFactory[TextInput] {
   val invalid = Prop.in[Boolean, TextInput](_.invalidVar)
   val variant = Prop.in[Variant, TextInput](_.variantVar)
   val align = Prop.in[TextAlign, TextInput](_.alignVar)
+  /** Defaults to `Length.pct(100)` — an `<input>` left to itself is the browser's
+    * ~20-character default width, which is narrower than any form wants. */
   val width = Prop.in[Length, TextInput](_.widthVar)
   val fontSize = Prop.in[Length, TextInput](_.fontSizeVar)
 

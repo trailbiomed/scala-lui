@@ -187,7 +187,7 @@ object Calendar extends ComponentFactory[Calendar] {
     btn.amend(
       interact.state.styled { (t, i) =>
         val ring =
-          if (i.focused && !i.pressed)
+          if (i.focusVisible && !i.pressed)
             css.raw("box-shadow", s"0 0 0 2px ${t.brand.alpha(0.35).toCss}")
           else css.raw("box-shadow", "none")
         stack.centerAll ++
@@ -248,12 +248,13 @@ object Calendar extends ComponentFactory[Calendar] {
     val cell = button(typ := "button")
     val hovered = Var(false)
     val focused = Var(false)
+    val cellState = Signal.combine(hovered.signal, Interactive.focusVisible(focused.signal))
     cell.amend(
       role := "gridcell",
       aria.selected := selected,
       aria.label := s"${Day.monthNames(d.month - 1)} ${d.day}, ${d.year}",
       tabIndex := (if (isFocused) 0 else -1),
-      Signal.combine(hovered.signal, focused.signal).styled { case (t, (hv, foc)) =>
+      cellState.styled { case (t, (hv, foc)) =>
         val bg =
           if (disabled) Color.transparent
           else if (selected) t.brand
