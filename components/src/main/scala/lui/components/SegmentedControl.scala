@@ -62,11 +62,15 @@ object SegmentedControl extends ComponentFactory[SegmentedControl] {
           case (false, _, true)    => (Color.transparent, t.text)
           case (false, _, false)   => (Color.transparent, t.textMuted)
         }
-        val baseShadow = if (selected) "0 1px 3px rgba(0,0,0,0.10)" else "none"
-        val shadow =
-          if (i.focused && !i.pressed && !disabled)
-            s"$baseShadow, 0 0 0 2px ${t.brand.alpha(0.3).toCss}"
-          else baseShadow
+        val lift = if (selected) Some("0 1px 3px rgba(0,0,0,0.10)") else None
+        val ring =
+          if (i.focusVisible && !i.pressed && !disabled)
+            Some(s"0 0 0 2px ${t.brand.alpha(0.3).toCss}")
+          else None
+        val shadow = (lift ++ ring).mkString(", ") match {
+          case ""      => "none"
+          case layered => layered
+        }
         css.padding(Length.px(4), spacing.lg) ++
           css.fontSize(fontSizes.lg) ++
           css.fontWeight(if (selected) FontWeight.SemiBold else FontWeight.Medium) ++

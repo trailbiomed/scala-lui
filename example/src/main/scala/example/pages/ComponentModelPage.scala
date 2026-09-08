@@ -79,6 +79,43 @@ object ComponentModelPage {
       PageTemplate.paragraph(
         "InOut props expose <-- and --> separately as well, which matters when the outbound side " +
           "needs adapting before forwarding. See gotcha 12 below."
+      ),
+      PageTemplate.paragraph(
+        "An Out can be reshaped where it is declared, so an event that needs context does not " +
+          "have to be routed through a local EventBus and then read back out of a Var."
+      ),
+      Code(
+        Code.block := true,
+        Code.text :=
+          """// Constant / mapped:
+            |Button(Button.click.mapTo(View.Workbench) --> view.writer)
+            |Menu(Menu.select.map(_.toUpperCase) --> tag.writer)
+            |
+            |// Filtered / narrowed:
+            |Menu(Menu.select.filter(_.nonEmpty) --> tag.writer)
+            |Menu(Menu.select.collect { case "archive" => () } --> archiveBus.writer)
+            |
+            |// Paired with a signal — the usual reason to reach for a local bus:
+            |ConfirmDialog(
+            |  ConfirmDialog.confirm.withCurrentValueOf(selected.signal) -->
+            |    Observer[(Unit, Project)] { case (_, p) => delete(p) }
+            |)
+            |
+            |// Replaced by a signal's current value:
+            |Button(Button.click.sample(query.signal) --> search.writer)
+            |
+            |// Any stream transformation:
+            |TextInput(TextInput.value.compose(_.debounce(300)) --> search.writer)""".stripMargin
+      ),
+      PageTemplate.paragraph(
+        "The signal in withCurrentValueOf and sample is only read when an event arrives, so it " +
+          "never has to be current beforehand."
+      ),
+      PageTemplate.paragraph(
+        "One asymmetry to know: Prop.in does not deduplicate, because a Source may deliberately " +
+          "re-emit an equal value, while Prop.inOut's outgoing side is distinct so that a two-way " +
+          "binding cannot loop. Hand-wiring a Var into a plain in prop and back out of the same " +
+          "component is the one shape to avoid — use inOut with <--> instead."
       )
     ),
 

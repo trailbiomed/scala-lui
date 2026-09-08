@@ -43,7 +43,8 @@ lazy val core = (project in file("core"))
     name := "lui-core",
     libraryDependencies ++= Seq(
       "org.scala-js" %%% "scalajs-dom" % "2.8.0",
-      "com.raquo" %%% "laminar" % "17.1.0"
+      "com.raquo" %%% "laminar" % "17.1.0",
+      "org.scalameta" %%% "munit" % "1.0.4" % Test
     )
   )
 

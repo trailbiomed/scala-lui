@@ -6,8 +6,10 @@ import lui.style.*
 
 final class Alert private[components] (
     val root: HtmlElement,
-    private[components] val bodySlot: HtmlElement
+    private[components] val bodySlot: HtmlElement,
+    private[components] val actionsSlot: HtmlElement
 ) extends Component {
+  private[components] val hasActionsVar: Var[Boolean] = Var(false)
   private[components] val titleVar: Var[String] = Var("")
   private[components] val variantVar: Var[Alert.Variant] = Var(Alert.Variant.Info)
   private[components] val dismissibleVar: Var[Boolean] = Var(false)
@@ -34,10 +36,19 @@ object Alert extends ComponentFactory[Alert] {
   def body(content: Modifier[HtmlElement]*): Mod[Alert] = el =>
     el.bodySlot.amend(content*)
 
+  /** Slot for the alert's actions — a button or two the message asks for. They sit at the
+    * trailing edge, aligned away from the text, rather than inline in `body` where they
+    * can only follow it. */
+  def actions(content: Modifier[HtmlElement]*): Mod[Alert] = el => {
+    el.hasActionsVar.writer.onNext(true)
+    el.actionsSlot.amend(content*)
+  }
+
   override protected def build: Alert = {
     val iconEl = span()
     val titleEl = span()
     val bodySlot = div()
+    val actionsSlot = div()
     val closeEl = span()
 
     val textCol = div(
@@ -46,8 +57,8 @@ object Alert extends ComponentFactory[Alert] {
       bodySlot
     )
 
-    val root = div(iconEl, textCol, closeEl)
-    val el = new Alert(root, bodySlot)
+    val root = div(iconEl, textCol, actionsSlot, closeEl)
+    val el = new Alert(root, bodySlot, actionsSlot)
 
     root.amend(
       el.variantVar.signal.styled { (t, v) =>
@@ -88,6 +99,13 @@ object Alert extends ComponentFactory[Alert] {
 
     bodySlot.amend(
       typo.body ++ css.lineHeight(1.5)
+    )
+
+    actionsSlot.amend(
+      el.hasActionsVar.signal.styled { (_, has) =>
+        if (!has) css.display(Display.None)
+        else stack.row(spacing.md) ++ stack.noShrink ++ css.raw("align-self", "center")
+      }
     )
 
     closeEl.amend(

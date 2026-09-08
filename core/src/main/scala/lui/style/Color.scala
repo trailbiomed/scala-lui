@@ -6,6 +6,17 @@ final case class Color(r: Int, g: Int, b: Int, a: Double = 1.0) {
     else s"rgba($r, $g, $b, ${f"$a%.3f"})"
   }
   def alpha(value: Double): Color = copy(a = value)
+
+  /** Flatten this color onto an opaque `under`, the way the browser composites it. Needed
+    * before any luminance calculation, since the soft status tokens in the dark themes are
+    * translucent. */
+  def over(under: Color): Color = {
+    if (a >= 1.0) copy(a = 1.0)
+    else {
+      def mix(f: Int, b: Int): Int = Math.round(f * a + b * (1.0 - a)).toInt
+      Color(mix(r, under.r), mix(g, under.g), mix(b, under.b))
+    }
+  }
 }
 
 object Color {

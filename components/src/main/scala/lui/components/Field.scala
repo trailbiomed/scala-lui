@@ -57,7 +57,7 @@ object Field extends ComponentFactory[Field] {
         idAttr := msgId,
         Signal.combine(el.hintVar.signal, el.errorVar.signal).styled { case (t, (_, e)) =>
           if (e.nonEmpty) css.color(t.danger) ++ css.fontSize(fontSizes.md)
-          else css.color(t.textSubtle) ++ css.fontSize(fontSizes.sm)
+          else css.color(t.textMuted) ++ css.fontSize(fontSizes.sm)
         },
         child.text <-- Signal.combine(el.hintVar.signal, el.errorVar.signal).map {
           case (h, e) => if (e.nonEmpty) e else h

@@ -23,7 +23,7 @@ final class ThemedStyle(val resolve: Theme => Style) extends Modifier[HtmlElemen
     ThemedStyle(t => resolve(t) ++ other)
 
   override def apply(el: HtmlElement): Unit = {
-    el.amend(styleAttr <-- Theme.signal.map(t => resolve(t).toCss))
+    StyleLayers.dynamic(Theme.signal.map(resolve)).apply(el)
   }
 }
 
@@ -40,5 +40,5 @@ extension (s: Style) {
 /** Bind a state Signal AND the current Theme into a reactive inline style. */
 extension [A](sig: Signal[A]) {
   def styled(f: (Theme, A) => Style): Modifier[HtmlElement] =
-    styleAttr <-- Signal.combine(Theme.signal, sig).map { case (t, a) => f(t, a).toCss }
+    StyleLayers.dynamic(Signal.combine(Theme.signal, sig).map { case (t, a) => f(t, a) })
 }

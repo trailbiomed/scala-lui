@@ -28,6 +28,34 @@ object FeedbackPages {
         )
       )
     ),
+    PageTemplate.section("Actions")(
+      PageTemplate.paragraph(
+        "`actions(...)` puts controls at the trailing edge, aligned away from the text. " +
+          "Buttons placed in `body` can only follow the message, so they cannot be " +
+          "aligned right."
+      ),
+      PageTemplate.codedDemo(
+        "Alert.actions",
+        """Alert(
+          |  Alert.title := "Reference is out of date",
+          |  Alert.variant := Alert.Variant.Warning,
+          |  Alert.body(span("GRCh38.p13 was superseded four months ago.")),
+          |  Alert.actions(
+          |    Button(Button.label := "Update", Button.size := Button.Size.Small)
+          |  )
+          |)""".stripMargin
+      )(
+        Alert(
+          Alert.title := "Reference is out of date",
+          Alert.variant := Alert.Variant.Warning,
+          Alert.body(span("GRCh38.p13 was superseded four months ago.")),
+          Alert.actions(
+            Button(Button.label := "Update", Button.size := Button.Size.Small),
+            Button(Button.label := "Dismiss", Button.size := Button.Size.Small, Button.variant := Button.Variant.Ghost)
+          )
+        )
+      )
+    ),
     PageTemplate.behavior(
       "Set `dismissible := true` to add a close button; clicking it hides the alert without removing it from the DOM."
     ),
@@ -35,7 +63,8 @@ object FeedbackPages {
       ("title",       "String",                            "Alert title."),
       ("variant",     "Info|Success|Warning|Danger",       "Severity. Picks the color treatment."),
       ("dismissible", "Boolean",                           "Show a close button."),
-      ("body",        "Slot",                              "Free-form body content.")
+      ("body",        "Slot",                              "Free-form body content."),
+      ("actions",     "Slot",                              "Controls at the trailing edge.")
     )
   )
 

@@ -12,6 +12,7 @@ object palette {
   val teal500: Color = Color.hex("#14b8a6")
   val teal600: Color = Color.hex("#0d9488")
   val teal700: Color = Color.hex("#0f766e")
+  val teal800: Color = Color.hex("#115e59")
   val teal900: Color = Color.hex("#134e4a")
 
   // Neutrals (slate — kept for data-encoding / status use cases
@@ -54,6 +55,7 @@ object palette {
   val red50: Color = Color.hex("#fef2f2")
   val red300: Color = Color.hex("#fca5a5")
   val red600: Color = Color.hex("#dc2626")
+  val red700: Color = Color.hex("#b91c1c")
   val red800: Color = Color.hex("#991b1b")
 
   // Semantic — blue (running / info)
@@ -70,6 +72,61 @@ object palette {
 
   // Black with alpha (modal backdrop, shadows etc.)
   val backdrop: Color = Color(15, 23, 42, 0.4)
+
+  /** Every palette stop by name. Lets a consumer enumerate the palette at runtime —
+    * contrast audits, generated documentation, exporting to another toolchain — instead of
+    * transcribing this file. */
+  val all: Map[String, Color] = Map(
+    "teal50" -> teal50,
+    "teal100" -> teal100,
+    "teal200" -> teal200,
+    "teal400" -> teal400,
+    "teal500" -> teal500,
+    "teal600" -> teal600,
+    "teal700" -> teal700,
+    "teal800" -> teal800,
+    "teal900" -> teal900,
+    "white" -> white,
+    "slate50" -> slate50,
+    "slate100" -> slate100,
+    "slate200" -> slate200,
+    "slate300" -> slate300,
+    "slate400" -> slate400,
+    "slate500" -> slate500,
+    "slate600" -> slate600,
+    "slate700" -> slate700,
+    "slate800" -> slate800,
+    "slate900" -> slate900,
+    "neutral50" -> neutral50,
+    "neutral100" -> neutral100,
+    "neutral200" -> neutral200,
+    "neutral300" -> neutral300,
+    "neutral400" -> neutral400,
+    "neutral500" -> neutral500,
+    "neutral600" -> neutral600,
+    "neutral700" -> neutral700,
+    "neutral800" -> neutral800,
+    "neutral900" -> neutral900,
+    "neutral950" -> neutral950,
+    "emerald50" -> emerald50,
+    "emerald300" -> emerald300,
+    "emerald600" -> emerald600,
+    "emerald700" -> emerald700,
+    "red50" -> red50,
+    "red300" -> red300,
+    "red600" -> red600,
+    "red700" -> red700,
+    "red800" -> red800,
+    "blue50" -> blue50,
+    "blue300" -> blue300,
+    "blue600" -> blue600,
+    "amber50" -> amber50,
+    "amber100" -> amber100,
+    "amber300" -> amber300,
+    "amber700" -> amber700,
+    "amber800" -> amber800,
+    "backdrop" -> backdrop
+  )
 }
 
 /** Border-radius tokens. */

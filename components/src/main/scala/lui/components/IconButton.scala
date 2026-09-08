@@ -104,7 +104,7 @@ object IconButton extends ComponentFactory[IconButton] {
           css.border(Length.px(1.5), BorderStyle.Solid, Color.transparent)
     }
     val focusRing =
-      if (i.focused && !i.pressed && !disabled)
+      if (i.focusVisible && !i.pressed && !disabled)
         css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.35).toCss}")
       else css.raw("box-shadow", "none")
     base ++ variantStyle ++ focusRing

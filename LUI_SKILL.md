@@ -118,6 +118,36 @@ Applications must create new custom components to manage application state all t
 - `build` is called by `ComponentFactory.apply`, which folds user `Mod`s
   onto the result. Never write `mods.foreach(_(el)); el` yourself.
 
+### Reshaping an `Out` at the call site
+
+`Out` carries combinators, so an event that needs context does not have to
+be routed through a local `EventBus` and read back out of a `Var`:
+
+| Combinator | Result |
+|---|---|
+| `.map(f)` / `.mapTo(v)` | transform or replace each event |
+| `.filter(p)` / `.collect(pf)` | drop or narrow events |
+| `.withCurrentValueOf(sig)` | `Out[(V, B)]` — pair each event with the signal's current value |
+| `.sample(sig)` | `Out[B]` — replace the event with the signal's current value |
+| `.compose(f)` | any `EventStream` transformation — `debounce`, `throttle`, `distinct` |
+| `.foreach(f)` | terminal: a `Mod[El]` running a side effect |
+
+```scala
+ConfirmDialog.confirm.withCurrentValueOf(selected.signal) -->
+  Observer[(Unit, Project)] { case (_, p) => delete(p) }
+
+TextInput.value.compose(_.debounce(300)) --> search.writer
+```
+
+The signal in `withCurrentValueOf` / `sample` is only read when an event
+arrives, so it never has to be current beforehand.
+
+One asymmetry to know: **`Prop.in` does not dedupe**, because a `Source[V]`
+may deliberately re-emit an equal value, while **`Prop.inOut`'s outgoing
+side is `distinct`** so a two-way binding cannot loop. Hand-wiring a `Var`
+into a plain `in` prop and back out of the same component is the one shape
+to avoid — use `inOut` with `<-->`.
+
 ### Slots: caller-supplied DOM into a named region
 
 `Prop.in[V]` is for reactive *values* (`String`, `Boolean`, enums). When
@@ -257,6 +287,10 @@ CSS is last-wins inside a single Style:
 typo.label ++ css.fontWeight(FontWeight.SemiBold)   // upgrades the weight
 ```
 
+Across separate modifiers on one element the layers merge — each writes only
+the properties it declares, and the later modifier wins only where they
+overlap. See gotcha 4.
+
 ## Theme tokens vs palette
 
 - **Semantic tokens** (`t.surface`, `t.text`, `t.brand`, `t.danger`, …) flip
@@ -283,17 +317,20 @@ These come up repeatedly. Internalize them.
    `.px` on `Int`/`Double` and shadow the token versions outside
    `lui.style.tokens`.
 
-4. **One `Style` modifier per element.** `Style.apply` calls
-   `styleAttr := toCss`, which **replaces** the entire inline style. Two
-   separate `Style` modifiers on the same element race; the second wipes
-   out the first. Compose with `++` into a single `Style`:
+4. **Styles on one element merge.** Every lui style modifier — a static
+   `Style`, a `ThemedStyle`, `signal.styled`, `themed` — claims its own layer
+   on the element and writes only the properties it declares, so two of them
+   compose rather than race. Where both set the same property the later
+   modifier wins, which is the same last-wins rule that holds inside a single
+   `Style`. Both of these work:
    ```scala
    div(stack.row(spacing.md) ++ css.alignItems("flex-start"), …)
+   div(stack.row(spacing.md), css.alignItems("flex-start"), …)
    ```
-   not
-   ```scala
-   div(stack.row(spacing.md), css.alignItems("flex-start"), …)  // broken
-   ```
+   Prefer the `++` form when the decls belong together — it puts the
+   last-wins resolution where a reader can see it. Only properties lui itself
+   declared are ever removed, so a lui `Style` coexists with Laminar's own
+   style setters on the same element.
 
 5. **`Signal[Style]` is not a Modifier.** A static `Style` is a Modifier; a
    `ThemedStyle` is a Modifier. A raw `Signal[Style]` is not. Route it
@@ -554,6 +591,46 @@ like the typed builders.
 - `Surface` (capital, `lui.components.Surface`) — element builder
   (`Surface.interactive(...)`) that returns a clickable themed `div`.
 
+## Focus rings
+
+`InteractionState` carries four Booleans: `hovered`, `focused`, `pressed`,
+`focusVisible`.
+
+- **`focused`** is raw DOM focus. A mouse click sets it. Use it for
+  backgrounds and other "this is the current item" affordances — a menu
+  opened by click and walked with the arrow keys still has to shade the row
+  you are on.
+- **`focusVisible`** is `focused` narrowed to focus the keyboard put there —
+  the distinction CSS calls `:focus-visible`, which no inline style can
+  express. **Draw every ring off this.**
+
+```scala
+val ring =
+  if (i.focusVisible && !i.pressed)
+    css.raw("box-shadow", s"0 0 0 3px ${t.brand.alpha(0.35).toCss}")
+  else css.raw("box-shadow", "none")
+```
+
+`focusVisible` is derived, not tracked: it is `focused && Device.keyboardMode`,
+so putting the mouse down and then reaching for the keyboard makes the ring
+appear on the element that already has focus.
+
+`Device.keyboardMode: StrictSignal[Boolean]` counts any keydown but a bare
+modifier as keyboard navigation, and any pointer press as not — on
+*pointerdown*, because focus lands there. Both listeners are on the capture
+phase so the mode is settled before any element's own focus handler runs.
+
+For a component that tracks focus in its own `Var` rather than through
+`Interactive` (a native `<select>`, a slider thumb, a calendar cell),
+`Interactive.focusVisible(focusedSignal): Signal[Boolean]` applies the same
+narrowing.
+
+**Text fields are the deliberate exception.** `TextInput`, `Textarea`,
+`NumberInput`, `PasswordInput` and `TagsInput` still ring on plain
+`focused`: clicking into one is a deliberate act of placing a caret, the
+field is about to receive typing, and every native input rings on click.
+Browsers' own `:focus-visible` behaves the same way for text entry.
+
 ## Animation
 
 No `@keyframes`. For animation, drive a `Var[Double]` from a JS
@@ -564,8 +641,11 @@ No `@keyframes`. For animation, drive a `Var[Double]` from a JS
 
 - Don't create `.css` or `.scss` files, or `<style>` blocks.
 - Don't use `cls := "..."` or className.
-- Don't customize `:focus`; let the browser's focus ring through.
-  Hover/pressed states use the `Interactive` helper.
+- Don't customize `:focus`; let the browser's focus ring through where a
+  component doesn't draw its own. Hover / pressed / focus-visible states
+  come from the `Interactive` helper.
+- Don't draw a focus ring off `i.focused` — use `i.focusVisible`. See
+  "Focus rings" below.
 - Don't reach for `npm install`.
 - Don't add prop declarations without `Prop.in/inOut/out` — the two-line
   pattern (`val v = Var(...); val x = In(...)`) is dead.
@@ -624,7 +704,7 @@ Two shapes of component exist:
 
 | Component | Props (kind) | Notes |
 |---|---|---|
-| `Button` | `label:in`, `variant:in (Primary/Secondary/Ghost)`, `size:in (Small/Medium)`, `disabled:in`, `loading:in`, `click:out` | Default action surface. |
+| `Button` | `label:in`, `variant:in (Primary/Secondary/Ghost/Danger)`, `size:in (Small/Medium)`, `disabled:in`, `loading:in`, `click:out` | Default action surface. `Danger` is the destructive variant — danger text on the plain surface, `dangerSoft` fill on hover, danger-tinted focus ring. Use it on the confirming button, not on the control that opens the dialog. |
 | `IconButton` | `icon:in`, `ariaLabel:in`, `variant:in`, `size:in`, `disabled:in`, `click:out` | Always pair with `ariaLabel`. |
 | `CloseButton` | `size:in (Default/Small)`, `disabled:in`, `ariaLabel:in`, `click:out` | × dismiss control. |
 | `Chip` | `label:in`, `active:in`, `disabled:in`, `click:out` | Pill-shaped toggle. Parent owns "which is active" and feeds each chip its `active <-- ...`. |
@@ -634,16 +714,16 @@ Two shapes of component exist:
 
 | Component | Props (kind) | Notes |
 |---|---|---|
-| `TextInput` | `value:inOut`, `placeholder:in`, `disabled:in`, `invalid:in`, `variant:in (Text/Number)`, `align:in`, `width:in` | |
-| `Textarea` | `value:inOut`, `placeholder:in`, `disabled:in`, `invalid:in`, `rows:in`, `width:in`, `resizable:in` | |
+| `TextInput` | `value:inOut`, `placeholder:in`, `disabled:in`, `invalid:in`, `variant:in (Text/Number)`, `align:in`, `width:in` | `width` defaults to `Length.pct(100)` so the field fills its parent rather than the browser's ~20-character default. |
+| `Textarea` | `value:inOut`, `placeholder:in`, `disabled:in`, `invalid:in`, `rows:in`, `width:in`, `resizable:in`, `bordered:in` | `bordered := false` drops the field's own border, radius, fill and focus ring, for nesting inside a surface that already draws them. The wrapper then owns the focus affordance. |
 | `NumberInput` | `value:inOut[Double]`, `min:in`, `max:in`, `step:in`, `disabled:in`, `width:in` | Uses `type=text` + stepper to hide native spinners. |
 | `PasswordInput` | `value:inOut`, `placeholder:in`, `disabled:in`, `invalid:in`, `width:in` | Reveal button built-in. |
 | `PinInput` | `value:inOut`, `length:in`, `mask:in` | Paste fills cells from focused position onward. |
 | `TagsInput` | `value:inOut[Seq[String]]`, `placeholder:in`, `disabled:in` | Enter/comma commits draft. |
 | `Editable` | `value:inOut`, `placeholder:in`, `editing:inOut`, `variant:in (Body/Heading)` | Click-to-edit text. Click the preview, *or* set `editing := true` externally (e.g. from a "Rename" button) — the draft is seeded from `value` and the input is focused either way. Enter commits, Escape cancels, blur commits. `Heading` variant renders a 16-px semibold preview and a bottom-border-only input for click-to-rename-a-title patterns. |
 | `FileUpload` | `files:inOut[Seq[dom.File]]`, `multiple:in`, `accept:in`, `label:in` | Drag-and-drop. |
-| `Checkbox` | `checked:inOut`, `disabled:in`, `label:in` | |
-| `CheckboxCard` | `title:in`, `description:in`, `checked:inOut`, `disabled:in` | Card-shaped checkbox. |
+| `Checkbox` | `checked:inOut`, `indeterminate:in`, `disabled:in`, `label:in` | `indeterminate := true` is the mixed state a "select all" box needs: dash glyph, `aria-checked="mixed"`, and activating it resolves to checked. |
+| `CheckboxCard` | `title:in`, `description:in`, `checked:inOut`, `disabled:in`, `children(slot)` | Card-shaped checkbox. `children(...)` appends under the description — a tag row, a metric, a thumbnail. |
 | `RadioGroup` | `value:inOut`, `options:in[Seq[(String,String)]]`, `disabled:in`, `orientation:in` | |
 | `RadioCard` | `value:inOut`, `options:in[Seq[RadioCard.Option]]`, `disabled:in`, `orientation:in` | Card-shaped radio. |
 | `SegmentedControl` | `value:inOut`, `options:in`, `disabled:in` | Pick-one-of-N button row. |
@@ -659,7 +739,7 @@ Two shapes of component exist:
 
 | Component | Props (kind) | Notes |
 |---|---|---|
-| `Accordion` | `title:in`, `summary:in`, `open:inOut`, `body(slot)` | |
+| `Accordion` | `title:in`, `summary:in`, `open:inOut`, `chevronSize:in`, `body(slot)` | `chevronSize` defaults to the header's own type size. |
 | `Collapsible` | `open:inOut`, `body(slot)` | No header; bring your own toggle. |
 | `Show` | `visible:in`, `content(slot)` | Persistent show/hide. Mounts content once; toggles `display: contents` ↔ `display: none`. Wrapped subtree keeps its internal state, subscriptions, scroll position. See "Persisting state across navigation". |
 | `Tabs` | `tabs:in[Seq[(String,String)]]`, `active:inOut`, `variant:in` | |
@@ -671,7 +751,7 @@ Two shapes of component exist:
 
 | Component | Props (kind) | Notes |
 |---|---|---|
-| `Alert` | `title:in`, `variant:in (Info/Success/Warning/Danger)`, `dismissible:in`, `dismiss:out`, `body(slot)` | |
+| `Alert` | `title:in`, `variant:in (Info/Success/Warning/Danger)`, `dismissible:in`, `dismiss:out`, `body(slot)`, `actions(slot)` | `actions(...)` puts controls at the trailing edge, aligned away from the text. Buttons in `body` can only follow the message. |
 | `EmptyState` | `icon:in`, `title:in`, `description:in`, `action(slot)` | |
 | `Spinner` | `size:in` | JS-interval animated. |
 | `ProgressBar` | `value:in[Double 0..1]`, `variant:in`, `height:in`, `indeterminate:in` | |
@@ -698,12 +778,13 @@ Two shapes of component exist:
 
 | Component | Props (kind) | Notes |
 |---|---|---|
-| `Modal` | `open:inOut`, `title:in`, `width:in`, `dismissible:in`, `close:out`, `body(slot)`, `footer(slot)` | Centered dialog. Built-in close × when `dismissible` (default true); footer bar only mounts when `Modal.footer(...)` is supplied. |
+| `Modal` | `open:inOut`, `title:in`, `width:in`, `dismissible:in`, `busy:in`, `divided:in`, `close:out`, `body(slot)`, `footer(slot)`, `attr(mods*)` | Centered dialog. Built-in close × when `dismissible` (default true); footer bar only mounts when `Modal.footer(...)` is supplied. `busy := true` locks the dialog shut outright — no Escape, no backdrop, no × — for the span of a request it started. `divided := false` collapses the header rule and the footer's fill and rule, for a short dialog that shouldn't read as three stacked bands. `attr(...)` reaches the dialog card. |
+| `ConfirmDialog` | `open:inOut`, `title:in`, `message:in`, `confirmLabel:in`, `busyLabel:in`, `cancelLabel:in`, `busy:in`, `destructive:in`, `confirm:out`, `dismissed:out`, `body(slot)` | A `Modal` that owns its footer. While `busy` neither button responds and the dialog cannot be dismissed — once `confirm` has fired the request has gone and closing the window does not recall it. Confirm reads `busyLabel` while busy (defaults to `confirmLabel` + "…"); `destructive` renders it as `Button.Variant.Danger`. `dismissed` covers cancel, Escape, backdrop and × and clears `open` itself. |
 | `Drawer` | `open:inOut`, `width:in`, `title:in`, `side:in (Left/Right)`, `body(slot)` | Side panel. |
 | `FullscreenOverlay` | `open:inOut`, `zIndex:in (default 100)`, `trapFocus:in (default true)`, `close:out`, `body(slot)` | Viewport-filling surface — no backdrop, no chrome. For slideshows / presentation modes / kiosk surfaces. Escape closes; focus is trapped inside while open and restored on close. |
 | `Tooltip` | `label:in`, `placement:in (Top/Right/Bottom/Left)`, `trigger(slot)` | Hover-only. |
 | `Popover` | `open:inOut`, `placement:in`, `trigger(slot)`, `body(slot)` | Click-toggled; building block for the next three. |
-| `Menu` | `items:in[Seq[Menu.Item]]`, `select:out[String]`, `trigger(slot)` | `Item(key, label, icon, danger)`. |
+| `Menu` | `items:in[Seq[Menu.Item]]`, `select:out[String]`, `trigger(slot)` | `Item(key, label, icon, danger, disabled)`. A disabled row is muted and inert: it emits nothing and the arrow keys skip over it. Use it for a row that has to stay visible to explain itself ("No tags yet") rather than a key with no handler. |
 | `HoverCard` | `placement:in`, `trigger(slot)`, `body(slot)` | Hover-open Popover. |
 | `ToggleTip` | `label:in`, `placement:in`, `trigger(slot)` | Click-open Tooltip. |
 
@@ -739,12 +820,12 @@ Two shapes of component exist:
 | `Wrap` | `Wrap(gap, align)(content*)` | Flex-wrap row. |
 | `Group` | `Group(content*)` | Zero-gap attached row. |
 | `SimpleGrid` | `SimpleGrid(columns, gap)(content*)` / `SimpleGrid.autoFit(minChildWidth, gap)(content*)` | |
-| `ScrollArea` | `ScrollArea(maxHeight, direction)(content*)` | |
+| `ScrollArea` | `ScrollArea(maxHeight, direction, bordered)(content*)` | `bordered = false` drops the border, radius and fill, so it can scroll inside a surface that already draws its own chrome. |
 | `Divider` | `Divider(Divider.orientation := …, Divider.label := …)` | |
 | `Surface` | `Surface.interactive(pad, rad, click, extra)(content*)` | Clickable themed div. |
 | `ActionBar` | `ActionBar(content*)` | Sticky bottom bar. |
 | `VisuallyHidden` | `VisuallyHidden(content*)` | Screen-reader-only. |
-| `SkipNav` | `SkipNav(targetId, label = "Skip to main content")` | |
+| `SkipNav` | `SkipNav(targetId, label = "Skip to main content")` + `SkipNav.target(id)` | Activating it calls `preventDefault` and moves focus in script rather than letting the browser follow the fragment — following it would write `#id` into `location.hash`, which a hash-routed app reads as a route it does not have. Moving focus is the point: a fragment jump to a non-focusable region scrolls but leaves focus in the nav. Put `SkipNav.target(id)` on the destination — it sets the id and the `tabindex="-1"` that makes a region programmatically focusable. |
 
 ### App-specific primitives
 
@@ -834,13 +915,20 @@ Backend tradeoffs:
 
 | Preset | Size / weight / color |
 |---|---|
-| `typo.eyebrow` | `fontSizes.xs`, Bold, uppercase + letter-spacing, `t.textSubtle` |
+| `typo.eyebrow` | `fontSizes.xs`, Bold, uppercase + letter-spacing, `t.textMuted` |
 | `typo.h1` | `fontSizes.display`, SemiBold, `t.text` |
 | `typo.h2` | `fontSizes.xxxl`, SemiBold, `t.text` |
 | `typo.label` | `fontSizes.lg`, Medium, `t.text` |
 | `typo.body` | `fontSizes.lg`, `t.text` |
 | `typo.muted` | `fontSizes.md`, `t.textMuted` |
-| `typo.hint` | `fontSizes.sm`, `t.textSubtle` |
+| `typo.hint` | `fontSizes.sm`, `t.textMuted` |
+
+`hint` and `eyebrow` resolve through `t.textMuted`, not `t.textSubtle`. Both
+carry real text — a field's hint, a caveat, a provenance line, a section
+label — and `textSubtle` sits below WCAG AA on a light surface by design.
+`textSubtle` is the decoration step of the scale: separators, out-of-month
+days, disabled labels. Reach for `t.textSubtle` directly when that is what
+you mean.
 
 ### `surface.*` — themed background presets (each is a `ThemedStyle`)
 
@@ -908,7 +996,13 @@ flex/grid (`SimpleGrid.autoFit`, `Wrap`) when possible.
 | `Length.rem(Double)` | `Nrem` |
 | `Length.auto` | `auto` |
 | `Length.zero` | `0` |
-| `Length.raw(String)` | escape hatch |
+| `Length.raw(String)` | escape hatch — `calc()`, `clamp()`, viewport units |
+
+`Length` is opaque over `String`, so a bare literal does not typecheck.
+An opt-in `given Conversion[String, Length]` covers the cases where a
+literal reads better: bring `scala.language.implicitConversions` into scope
+and `TextInput.width := "120px"` compiles. Without that import the compiler
+still demands a `Length`.
 
 ### `Color` — RGB(A)
 
@@ -924,13 +1018,18 @@ flex/grid (`SimpleGrid.autoFit`, `Wrap`) when possible.
 
 | Family | Stops |
 |---|---|
-| Brand (teal) | `teal50`, `teal100`, `teal200`, `teal400`, `teal500`, `teal600`, `teal700`, `teal900` |
+| Brand (teal) | `teal50`, `teal100`, `teal200`, `teal400`, `teal500`, `teal600`, `teal700`, `teal800`, `teal900` |
 | Neutrals (slate) | `white`, `slate50`–`slate900` |
+| Neutrals (zinc) | `neutral50`–`neutral900`, `neutral950` |
 | Success (emerald) | `emerald50`, `emerald300`, `emerald600`, `emerald700` |
-| Danger (red) | `red50`, `red300`, `red600`, `red800` |
+| Danger (red) | `red50`, `red300`, `red600`, `red700`, `red800` |
 | Info (blue) | `blue50`, `blue300`, `blue600` |
 | Warning (amber) | `amber50`, `amber100`, `amber300`, `amber700`, `amber800` |
 | Backdrop | `palette.backdrop` (semi-transparent black) |
+
+`palette.all: Map[String, Color]` enumerates every stop by name — for a
+contrast audit, generated docs, or an export to another toolchain — instead
+of transcribing this table.
 
 ### `Theme` — semantic tokens (`t.*` inside `themed { t => … }`)
 
@@ -948,6 +1047,27 @@ flex/grid (`SimpleGrid.autoFit`, `Wrap`) when possible.
 Other Theme members: `t.name: String`, `t.isDark: Boolean`. Global control
 via `Theme.current: Var[Theme]`, `Theme.signal: Signal[Theme]`,
 `Theme.setLight()` / `Theme.setDark()` / `Theme.toggle()`.
+
+Enumerating the theme: `t.colors: Map[String, Color]`, `t.toMap:
+Map[String, String]` (values as CSS), and `Theme.all: Seq[Theme]` for the
+themes lui ships (light, dark, monokai).
+
+### `Contrast` — WCAG 2.1 arithmetic and the token audit
+
+| Member | Notes |
+|---|---|
+| `Contrast.ratio(fg, bg)` | Ratio from 1.0 to 21.0. Composites a translucent `fg` onto `bg`; flatten a translucent `bg` yourself with `Color.over`. |
+| `Contrast.luminance(c)` | WCAG relative luminance. Flattens onto white if translucent. |
+| `Contrast.aa` / `Contrast.aaLarge` | 4.5 and 3.0. |
+| `Contrast.audit(t)` | Every text pairing lui's components draw, as `Pairing(theme, foreground, background, measured, required)`. |
+| `Contrast.failures(t)` | The pairings of `t` that fall short. Empty for every theme lui ships, and gated in core's test suite. |
+| `Color.over(under)` | Flatten a translucent color onto an opaque one, the way the browser composites it. |
+
+lui owns both halves of every pairing a component makes — the foreground
+token and the surface it lands on — so a failing pairing can only be fixed
+here. `textSubtle` is deliberately outside the audit; see `typo.*` above.
+Borders are not audited either: WCAG 1.4.11 asks 3:1 of a control's visual
+boundary, which lui's resting border deliberately does not meet.
 
 ### `Day` — calendar date primitive
 

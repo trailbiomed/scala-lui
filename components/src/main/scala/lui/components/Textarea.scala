@@ -19,6 +19,7 @@ final class Textarea private[components] (val root: HtmlElement) extends Compone
   private[components] val rowsVar: Var[Int] = Var(4)
   private[components] val widthVar: Var[Length] = Var(Length.pct(100))
   private[components] val resizableVar: Var[Boolean] = Var(true)
+  private[components] val borderedVar: Var[Boolean] = Var(true)
   private[components] val focused: Var[Boolean] = Var(false)
 }
 
@@ -32,6 +33,12 @@ object Textarea extends ComponentFactory[Textarea] {
   val width = Prop.in[Length, Textarea](_.widthVar)
   val resizable = Prop.in[Boolean, Textarea](_.resizableVar)
 
+  /** The field's own border, radius, fill and focus ring. `true` by default. Turn it off to
+    * nest the field inside a surface that already draws those — a composer box, a bordered
+    * cell — instead of dropping to a bare `textArea`. The wrapper then owns the focus
+    * affordance, so none is drawn here. */
+  val bordered = Prop.in[Boolean, Textarea](_.borderedVar)
+
   override protected def build: Textarea = {
     val root = textArea()
     val el = new Textarea(root)
@@ -41,25 +48,33 @@ object Textarea extends ComponentFactory[Textarea] {
       el.invalidVar.signal,
       el.widthVar.signal,
       el.disabledVar.signal,
-      el.resizableVar.signal
+      el.resizableVar.signal,
+      el.borderedVar.signal
     )
 
     root.amend(
-      state.styled { case (t, (focusedOn, invalidOn, w, d, resz)) =>
+      state.styled { case (t, (focusedOn, invalidOn, w, d, resz, borderedOn)) =>
         val (bd, shadow) =
           if (invalidOn) (t.danger, s"0 0 0 3px ${t.danger.alpha(0.18).toCss}")
           else if (focusedOn) (t.borderActive, s"0 0 0 3px ${t.brand.alpha(0.18).toCss}")
           else (t.border, "none")
+        val chrome =
+          if (borderedOn)
+            css.border(Length.px(1.5), BorderStyle.Solid, bd) ++
+              css.borderRadius(radius.md) ++
+              css.background(if (d) t.surfaceDim else t.surface) ++
+              css.raw("box-shadow", shadow)
+          else
+            css.border(Length.px(0), BorderStyle.None, Color.transparent) ++
+              css.background(Color.transparent) ++
+              css.raw("box-shadow", "none")
         css.width(w) ++
           css.padding(Length.px(9), Length.px(11)) ++
-          css.border(Length.px(1.5), BorderStyle.Solid, bd) ++
-          css.borderRadius(radius.md) ++
           css.fontSize(Length.px(15)) ++
           css.color(t.text) ++
-          css.background(if (d) t.surfaceDim else t.surface) ++
+          chrome ++
           css.raw("font-family", "inherit") ++
           css.raw("outline", "none") ++
-          css.raw("box-shadow", shadow) ++
           css.transition("border-color", 150) ++
           css.raw("box-sizing", "border-box") ++
           css.raw("resize", if (resz) "vertical" else "none") ++

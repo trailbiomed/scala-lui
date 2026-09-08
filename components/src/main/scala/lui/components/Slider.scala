@@ -178,7 +178,7 @@ object Slider extends ComponentFactory[Slider] {
           el.maxVar.signal,
           el.disabledVar.signal,
           el.dragging.signal,
-          el.focused.signal
+          Interactive.focusVisible(el.focused.signal)
         )
         .styled { case (t, (_, _, _, d, drag, foc)) =>
           val pct = fraction * 100.0

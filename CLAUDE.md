@@ -39,10 +39,12 @@ core/                                  Library — DSL primitives and styling
   src/main/scala/lui/
     Component.scala                    trait Component + ComponentFactory + Mod type
     Prop.scala                         In / Out / InOut + Prop.in/out/inOut helpers
-    Interactive.scala                  hover/focus/pressed Vars; Interactive.on(host)
-    Device.scala                       Device.inputMode / Device.viewportWidth signals
+    Interactive.scala                  hover/focus/pressed/focusVisible; Interactive.on(host)
+    Device.scala                       inputMode / viewportWidth / reducedMotion / keyboardMode
     style/
       Style.scala                      Decl, opaque Style, css.* builders
+      StyleLayers.scala                per-element style layers — why two Styles merge
+      Contrast.scala                   WCAG 2.1 ratios + the audit of lui's own pairings
       Color.scala                      RGB(a) with .toCss and .alpha
       Length.scala                     opaque Length + Length.px(n)/pct(n)/em(d) factories
       enums.scala                      FontWeight, BorderStyle, Display, TextAlign
@@ -101,6 +103,12 @@ Ceremony that no longer exists (don't add it back):
 - `el.interact.track` — `interact` is a `lazy val` on `Component`; listeners install on first access.
 - `val xStyle: Signal[Style] = Signal.combine(Theme.signal, X).map { … }` + a wrapper — replaced by inline `X.styled { (t, x) => … }`.
 
+### Chrome a caller can turn off
+
+**Where a component draws a border, a radius or a fill, give the caller a prop to turn it off.** `Card.padding`, `Textarea.bordered`, `ScrollArea(bordered = …)`, `Modal.divided` are the model. Nesting is the case this keeps failing: a component with baked-in chrome cannot go inside a surface that has its own, and the consumer's only way out is to hand-roll a local copy of the component. The same applies to a state a control genuinely has (`Checkbox.indeterminate`, `Menu.Item(disabled = …)`) and to a region a caller predictably needs (`Alert.actions`, `CheckboxCard.children`) — a slot or a prop, not a fork.
+
+Corollary for anything built inside another component's `build` (a `CloseButton` in a `Modal`, the items in a `Menu`): the caller never holds that instance, so a default it cannot reach is a dead end. Either the parent surfaces a prop for it, or the default has to be right for every caller.
+
 ## Critical Scala/Laminar gotchas
 
 These bite repeatedly:
@@ -143,6 +151,8 @@ Reuse via these presets:
 - `typo.{eyebrow,h1,h2,label,body,muted,hint}` — themed text presets.
 - `surface.card` / `surface.dim` — themed background panels.
 
+Styles on one element merge: each lui style modifier claims its own layer and writes only the properties it declares, so a layout `Style`, a `ThemedStyle` and a `signal.styled` on the same tag all apply. Where two set the same property the later modifier wins. Composing with `++` is still clearest when the decls belong together.
+
 `Surface.interactive(pad, rad, click, extra)(content*)` factory in `components/` builds the "hover-bordered clickable card" pattern in one call. Used by `Result.moduleRow`, `Workbench.refSourceOption`, `ExperimentMapView.experimentChip`, `ConditionsView.sampleRow`.
 
 ## Theme rules for components
@@ -157,11 +167,14 @@ Never hard-code `palette.*` colors in components — they break dark mode. Use t
 
 The palette tokens are only for data-bearing visuals (e.g. annotation strips in `Result.heatmapTab`) where the color encodes a category, not chrome.
 
+`t.textSubtle` is the decoration step of the text scale — separators, out-of-month days, disabled labels. It sits below WCAG AA on a light surface by design, so it must not carry text a reader needs; `typo.hint` and `typo.eyebrow` resolve through `t.textMuted` for that reason. `Contrast.failures(theme)` is empty for every shipped theme and is gated in `core`'s test suite; keep it that way when touching a token.
+
 ## Don't
 
 - Don't create `*.css`, `*.scss`, or `<style>` blocks.
 - Don't use `cls := "..."` or `className`. The `class` HTML attribute is unused.
-- Don't customize `:focus` styling — let the browser's native focus ring through. Only `:hover` and pressed-like state are simulated via the JS-backed `Interactive` helper.
+- Don't customize `:focus` styling — let the browser's native focus ring through where a component doesn't draw its own. `:hover`, pressed and `:focus-visible` are simulated via the JS-backed `Interactive` helper.
+- Don't draw a focus ring off `i.focused` — a mouse click sets it. Use `i.focusVisible` (`focused && Device.keyboardMode`). Keep backgrounds and "current item" affordances on `i.focused`. Text fields are the deliberate exception and still ring on plain `focused`.
 - Don't add `@keyframes`. For continuous animation use a JS `setInterval` driving a `Var[Double]` (see `Spinner`, `StatusBadge.pulsing`).
 - Don't reach for `npm install`. The build is sbt-only.
 - Don't add a new `Var` and `In` declaration without `Prop.in[V, El](_.xxxVar)`. The two-line pattern is dead.

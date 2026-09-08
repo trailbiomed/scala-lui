@@ -267,9 +267,31 @@ object LayoutPages {
         )
       )
     ),
+    PageTemplate.section("Unbordered")(
+      PageTemplate.paragraph(
+        "`bordered = false` drops the border, radius and fill, so the area can scroll " +
+          "inside a surface that already draws its own chrome without producing a box in a box."
+      ),
+      PageTemplate.codedDemo(
+        "ScrollArea(bordered = false)",
+        """div(surface.card ++ css.padding(spacing.md),
+          |  ScrollArea(maxHeight = Length.px(120), bordered = false)(
+          |    div(stack.col(spacing.sm), (1 to 30).map(i => span(typo.body, s"Item $i")))
+          |  )
+          |)""".stripMargin
+      )(
+        div(
+          surface.card ++ css.padding(spacing.md),
+          ScrollArea(maxHeight = Length.px(120), bordered = false)(
+            div(stack.col(spacing.sm), (1 to 30).map(i => span(typo.body, s"Item $i")))
+          )
+        )
+      )
+    ),
     PageTemplate.propsTable(
       ("maxHeight", "Length",                                "Max-height of the scroll container."),
-      ("direction", "\"vertical\" | \"horizontal\" | \"both\"", "Scroll axis. Default \"vertical\".")
+      ("direction", "\"vertical\" | \"horizontal\" | \"both\"", "Scroll axis. Default \"vertical\"."),
+      ("bordered",  "Boolean",                               "Border, radius and fill. Default true.")
     )
   )
 
@@ -459,8 +481,10 @@ object LayoutPages {
       PageTemplate.codedDemo(
         "SkipNav(targetId, label)",
         """SkipNav("main-content")
-          |// or:
-          |SkipNav("main-content", label = "Jump to main content")""".stripMargin
+          |
+          |// Mark the region it points at. `target` sets both the id and the
+          |// tabindex="-1" that makes a region programmatically focusable.
+          |mainTag(SkipNav.target("main-content"), routedView)""".stripMargin
       )(
         div(
           stack.col(spacing.md),
@@ -475,12 +499,16 @@ object LayoutPages {
     ),
     PageTemplate.behavior(
       "Renders an `<a href=\"#{targetId}\">` that is visually hidden until focused, then becomes a fixed-position pill in the top-left.",
+      "Activating it calls `preventDefault` and moves focus in script rather than letting the browser follow the fragment. Following it would write `#main-content` into `location.hash`, which an app that routes on the hash reads as a route it does not have.",
+      "Moving focus is the point, not scrolling: a fragment jump to a non-focusable region scrolls the page but leaves focus in the nav, so the next Tab goes straight back into the nav and the link appears to do nothing.",
+      "The target therefore has to be focusable. `SkipNav.target(id)` sets the id and `tabindex=\"-1\"` together.",
       "Place SkipNav as the very first focusable element in your app, typically right after the `<body>` tag, so the first Tab from a fresh page reveals it.",
       "The label is announced by screen readers even when invisible."
     ),
     PageTemplate.propsTable(
-      ("targetId", "String", "The id of the main-content element to jump to."),
-      ("label",    "String", "Visible/announced text. Default \"Skip to main content\".")
+      ("targetId",   "String",                "The id of the main-content element to jump to."),
+      ("label",      "String",                "Visible/announced text. Default \"Skip to main content\"."),
+      ("target(id)", "Modifier[HtmlElement]", "Put on the destination region: sets its id and makes it focusable.")
     )
   )
 }
