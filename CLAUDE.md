@@ -25,7 +25,7 @@ Compile-only check (useful when iterating without a browser): `sbt compile` or, 
 
 ## Scala code style
 1. functional
-2. no inline comments, make code legible without comments, even for those comment never reference the state before your change
+2. no comments. Not `//`, not scaladoc prose, and not only in library sources — test files and CI/YAML count too. Make the code legible without them, and never reference the state before your change. When a comment feels necessary the explanation belongs in a name: hoist the expression into a `val`/`def` that says what the comment would have said (`beforeElementFocusHandlers` for a bare `true`, `replaceProperty` for a remove-then-set pair, `focusableItemSelector` for a CSS string). The one exception is scaladoc on public API, and that is a summary sentence — plus `@param` where a parameter is genuinely non-obvious — never paragraphs of rationale.
 3. braceful
 4. always prefer built-in lui components, design tokens, and other abstractions whenever available.
 5. minimize the use of amend(), and set()
