@@ -19,7 +19,7 @@ final class Modal private[components] (
   private[components] val hasFooterVar: Var[Boolean] = Var(false)
   private[components] val closeBus: EventBus[Unit] = new EventBus
 
-  /** Whether the user is currently allowed to dismiss: `dismissible` and not `busy`. */
+  /** `dismissible` and not `busy`. */
   private[components] val canDismiss: Signal[Boolean] =
     Signal.combine(dismissibleVar.signal, busyVar.signal).map { case (d, b) => d && !b }
 
@@ -38,22 +38,19 @@ object Modal extends ComponentFactory[Modal] {
     * and the built-in close button is hidden. Defaults to `true`. */
   val dismissible = Prop.in[Boolean, Modal](_.dismissibleVar)
 
-  /** While `true` the dialog cannot be dismissed at all — no Escape, no backdrop click,
-    * no close button — regardless of `dismissible`. Set it for the span of a request the
-    * dialog started: it has already gone, and closing the window does not recall it.
-    * Restores the previous dismissibility when it goes back to `false`. */
+  /** While `true` no Escape, backdrop click or close button dismisses the dialog,
+    * whatever `dismissible` says. Set it for the span of a request the dialog started,
+    * which closing the window would not recall. */
   val busy = Prop.in[Boolean, Modal](_.busyVar)
 
-  /** Chrome between the three slots: a rule under the header, and a filled, ruled footer
-    * bar. `true` by default. Turn it off for a short dialog, where three stacked bands
-    * read far heavier than the content warrants. */
+  /** The rule under the header and the footer's fill and rule. `true` by default; turn it
+    * off for a short dialog that would otherwise read as three stacked bands. */
   val divided = Prop.in[Boolean, Modal](_.dividedVar)
 
   val close = Prop.out[Unit, Modal](_.closeBus)
 
-  /** Apply arbitrary modifiers to the dialog card — the element inside the backdrop that
-    * carries the header, body and footer. Use it for attributes and chrome overrides the
-    * props don't surface. */
+  /** Apply arbitrary modifiers to the dialog card, the element inside the backdrop that
+    * carries the header, body and footer. */
   def attr(mods: Modifier[HtmlElement]*): Mod[Modal] = el => el.cardEl.amend(mods*)
 
   def body(content: Modifier[HtmlElement]*): Mod[Modal] = el =>
@@ -71,7 +68,7 @@ object Modal extends ComponentFactory[Modal] {
 
   override protected def build: Modal = {
     val bodySlot   = div()
-    val footerSlot = div()
+    val footerSlot = div(stack.row(spacing.md) ++ css.justifyContent("flex-end"))
     val cardEl     = div()
     val root       = div(cardEl)
 
@@ -149,9 +146,7 @@ object Modal extends ComponentFactory[Modal] {
           Some(
             div(
               el.dividedVar.signal.styled { (t, dividedOn) =>
-                stack.row(spacing.md) ++
-                  css.justifyContent("flex-end") ++
-                  css.padding(spacing.md, spacing.xxl) ++
+                css.padding(spacing.md, spacing.xxl) ++
                   css.background(if (dividedOn) t.surfaceDim else t.surface) ++
                   css.borderTop(
                     Length.px(1),

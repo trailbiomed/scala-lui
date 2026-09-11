@@ -10,10 +10,8 @@ final case class Decl(prop: String, value: String)
 /** A composable set of CSS declarations. Acts as a Laminar `Modifier[HtmlElement]` — you can
   * drop it straight into a tag: `div(stack.col(spacing.lg), child1, child2)`.
   *
-  * Several `Style`s on one element merge; each claims its own layer and only the properties
-  * they actually declare are written, so a layout `Style` and a themed one no longer
-  * overwrite each other. Where two of them set the same property the later modifier wins,
-  * which is the same last-wins rule that applies inside a single `Style`. */
+  * Several `Style`s on one element merge rather than overwrite each other. Where two set
+  * the same property the later modifier wins, as within a single `Style`. */
 final class Style(val decls: Vector[Decl]) extends Modifier[HtmlElement] {
 
   def toCss: String = {

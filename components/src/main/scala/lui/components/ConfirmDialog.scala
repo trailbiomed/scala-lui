@@ -20,14 +20,8 @@ final class ConfirmDialog private[components] (
   private[components] val dismissBus: EventBus[Unit] = new EventBus[Unit]
 }
 
-/** A `Modal` that already owns its footer: a cancel button, a confirm button, the confirm
-  * button's progress label, and the rule that the dialog cannot be dismissed while the
-  * action it started is in flight.
-  *
-  * That last part is why this exists rather than being three lines at each call site. Once
-  * `confirm` has fired the request has gone, and closing the window does not recall it — so
-  * while `busy` is true there is no Escape, no backdrop click, no ×, and neither button
-  * responds. Set `busy` for the span of the request and clear `open` when it returns.
+/** A [[Modal]] that owns its footer: a cancel button, a confirm button, the confirm
+  * button's progress label, and the rule that the dialog stays shut while `busy`.
   *
   * {{{
   *   ConfirmDialog(
@@ -46,19 +40,19 @@ object ConfirmDialog extends ComponentFactory[ConfirmDialog] {
   val open = Prop.inOut[Boolean, ConfirmDialog](_.openVar)
   val title = Prop.in[String, ConfirmDialog](_.titleVar)
 
-  /** One line of body text. For anything richer, use `body(...)`. */
+  /** One line of body text. For anything richer, use [[body]]. */
   val message = Prop.in[String, ConfirmDialog](_.messageVar)
 
   val confirmLabel = Prop.in[String, ConfirmDialog](_.confirmLabelVar)
 
-  /** What the confirm button reads while `busy`. Defaults to `confirmLabel` with an
+  /** What the confirm button reads while `busy`. Defaults to `confirmLabel` plus an
     * ellipsis. */
   val busyLabel = Prop.in[String, ConfirmDialog](_.busyLabelVar)
 
   val cancelLabel = Prop.in[String, ConfirmDialog](_.cancelLabelVar)
 
-  /** True for as long as the confirmed action is in flight. Locks the dialog shut and
-    * switches the confirm button to `busyLabel`. */
+  /** True while the confirmed action is in flight. Disables both buttons and makes the
+    * dialog undismissable, since the request has gone and closing does not recall it. */
   val busy = Prop.in[Boolean, ConfirmDialog](_.busyVar)
 
   /** Styles the confirm button as a destructive action. */
@@ -74,13 +68,19 @@ object ConfirmDialog extends ComponentFactory[ConfirmDialog] {
   def body(content: Modifier[HtmlElement]*): Mod[ConfirmDialog] = el =>
     el.bodySlot.amend(content*)
 
+  private def confirmButtonLabel(el: ConfirmDialog): Signal[String] =
+    Signal
+      .combine(el.busyVar.signal, el.confirmLabelVar.signal, el.busyLabelVar.signal)
+      .map { case (isBusy, label, busyText) =>
+        if (!isBusy) label
+        else if (busyText.nonEmpty) busyText
+        else s"$label…"
+      }
+
   override protected def build: ConfirmDialog = {
     val bodySlot = div(
       typo.body ++ css.lineHeight(1.5)
     )
-    // The dialog itself is position: fixed, so this host exists only to own it.
-    // `display: contents` keeps it from contributing a row or a gap wherever the
-    // caller places the component.
     val root = div(css.display(Display.Contents))
     val el = new ConfirmDialog(root, bodySlot)
 
@@ -90,15 +90,7 @@ object ConfirmDialog extends ComponentFactory[ConfirmDialog] {
       Button.variant <-- el.destructiveVar.signal.map { d =>
         if (d) Button.Variant.Danger else Button.Variant.Primary
       },
-      // Not `Button.loading`: that hides the label to keep the button's width, and the
-      // progress label is the whole point of the busy state here.
-      Button.label <-- Signal
-        .combine(el.busyVar.signal, el.confirmLabelVar.signal, el.busyLabelVar.signal)
-        .map { case (isBusy, label, busyText) =>
-          if (!isBusy) label
-          else if (busyText.nonEmpty) busyText
-          else s"$label…"
-        },
+      Button.label <-- confirmButtonLabel(el),
       Button.disabled <-- el.busyVar.signal,
       Button.click --> el.confirmBus.writer
     )

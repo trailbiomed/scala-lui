@@ -3,10 +3,9 @@ package lui
 import com.raquo.laminar.api.L.{Mod as _, *}
 import org.scalajs.dom
 
-/** `focused` is raw DOM focus — a mouse click sets it. `focusVisible` narrows that to
-  * focus the keyboard put there, which is what a focus ring should key off; backgrounds and
-  * other "this is the current item" affordances stay on `focused`. Defaulted so existing
-  * three-argument construction still compiles. */
+/** @param focused      raw DOM focus, which a mouse click also sets
+  * @param focusVisible focus the keyboard put there. Draw focus rings off this one;
+  *                     backgrounds and current-item affordances belong on `focused`. */
 final case class InteractionState(
     hovered: Boolean,
     focused: Boolean,
@@ -21,10 +20,8 @@ final case class InteractionState(
   * Uses Pointer Events so the same code path handles mouse, touch, and pen. `hovered`
   * stays false on touch (gated on `pointerType == "mouse"`); a tap drives `pressed`.
   *
-  * `state` adds a fourth, derived flag: `focusVisible`, which folds in
-  * `Device.keyboardMode`. Being derived rather than tracked is what makes the good case
-  * work — put the mouse down, reach for the keyboard, and the ring appears on the element
-  * that already has focus. */
+  * `state` derives a fourth flag, `focusVisible`, from these three plus
+  * `Device.keyboardMode`. */
 final class Interactive private (
     val hovered: Var[Boolean],
     val focused: Var[Boolean],
@@ -40,9 +37,8 @@ final class Interactive private (
 
 object Interactive {
 
-  /** Narrow a plain focus signal to focus the keyboard put there — the `focusVisible`
-    * equivalent for a component that tracks focus in its own `Var` (a native `<select>`,
-    * a slider thumb, a calendar cell) rather than through `Interactive.state`. */
+  /** `InteractionState.focusVisible` for a component that tracks focus in its own `Var`
+    * rather than through [[Interactive.state]]. */
   def focusVisible(focused: Signal[Boolean]): Signal[Boolean] =
     Signal.combine(focused, Device.keyboardMode).map { case (f, kb) => f && kb }
 

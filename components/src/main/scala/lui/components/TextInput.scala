@@ -33,8 +33,7 @@ object TextInput extends ComponentFactory[TextInput] {
   val invalid = Prop.in[Boolean, TextInput](_.invalidVar)
   val variant = Prop.in[Variant, TextInput](_.variantVar)
   val align = Prop.in[TextAlign, TextInput](_.alignVar)
-  /** Defaults to `Length.pct(100)` — an `<input>` left to itself is the browser's
-    * ~20-character default width, which is narrower than any form wants. */
+  /** Defaults to `Length.pct(100)`, rather than the browser's ~20-character default. */
   val width = Prop.in[Length, TextInput](_.widthVar)
   val fontSize = Prop.in[Length, TextInput](_.fontSizeVar)
 

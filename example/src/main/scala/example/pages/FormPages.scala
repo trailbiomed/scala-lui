@@ -465,7 +465,7 @@ object FormPages {
 
   def checkbox(): HtmlElement = PageTemplate(
     title = "Checkbox",
-    summary = "Single binary choice with a label."
+    summary = "Binary choice with a label, plus a mixed state for \"select all\" rows."
   )(
     PageTemplate.section("Demo")(
       PageTemplate.codedDemo(

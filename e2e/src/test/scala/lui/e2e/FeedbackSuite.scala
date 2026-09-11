@@ -5,10 +5,9 @@ class FeedbackSuite extends E2ESuite {
   test("Alert dismissible variants render a close × that is clickable") {
     gotoSlug("alert")
     page.locator("text=Quota nearing").first().waitFor()
-    // All four Alert demos render a <span>×</span> child (text is always set);
-    // only the dismissible ones are display:InlineFlex visible. Take the last
-    // × span — that's the Danger alert (dismissible := true) on the demo page.
-    val xs = page.locator("span:has-text('×')")
+    // Every Alert renders a <span>×</span>; only the dismissible ones make it visible,
+    // so scope to those rather than to position on the page.
+    val xs = page.locator("span:has-text('×'):visible")
     val last = xs.nth(xs.count() - 1)
     last.waitFor()
     last.click() // demo doesn't wire dismiss; assert no throw

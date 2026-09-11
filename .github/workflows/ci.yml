@@ -26,9 +26,6 @@ jobs:
       - name: Compile core + components
         run: sbt -J-Xmx3g "core/compile" "components/compile"
 
-      # Gates the WCAG AA contrast audit over every shipped Theme. lui owns both
-      # halves of every pairing its components draw, so a token change that drops
-      # one below AA can only be caught here.
       - name: Test core
         run: sbt -J-Xmx3g "core/test"
 

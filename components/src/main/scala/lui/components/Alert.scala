@@ -36,9 +36,8 @@ object Alert extends ComponentFactory[Alert] {
   def body(content: Modifier[HtmlElement]*): Mod[Alert] = el =>
     el.bodySlot.amend(content*)
 
-  /** Slot for the alert's actions — a button or two the message asks for. They sit at the
-    * trailing edge, aligned away from the text, rather than inline in `body` where they
-    * can only follow it. */
+  /** Slot for the alert's actions, at the trailing edge and aligned away from the text.
+    * Controls put in `body` can only follow the message. */
   def actions(content: Modifier[HtmlElement]*): Mod[Alert] = el => {
     el.hasActionsVar.writer.onNext(true)
     el.actionsSlot.amend(content*)

@@ -161,7 +161,7 @@ object OverlayPages {
         val confirming = Var(false)
         val deleting = Var(false)
         val log = Var("")
-        div(stack.col(spacing.md),
+        div(stack.col(spacing.md) ++ css.alignItems("flex-start"),
           Button(
             Button.label := "Delete project",
             Button.variant := Button.Variant.Danger,

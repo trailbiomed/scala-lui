@@ -14,7 +14,8 @@ class OverlaysSuite extends E2ESuite {
     assert(!title.isVisible(), "expected Modal hidden initially")
     openBtn.click()
     title.waitFor()
-    page.locator("button:has-text('Cancel')").click()
+    // Several demos on this page mount a Modal each, so scope to the one on screen.
+    page.locator("[role='dialog']:visible button:has-text('Cancel')").click()
     page.waitForCondition(() => !title.isVisible())
   }
 

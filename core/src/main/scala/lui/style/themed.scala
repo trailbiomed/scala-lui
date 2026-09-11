@@ -3,8 +3,7 @@ package lui.style
 import com.raquo.laminar.api.L.{Mod as _, *}
 import com.raquo.laminar.modifiers.Modifier
 
-/** Build a Laminar `Modifier` that writes the result of `f` applied to the current theme
-  * into its own style layer on the element. Re-resolves when `Theme.signal` changes, and
-  * composes with any other style modifier on the same element. */
+/** Build a Laminar `Modifier` from `f` applied to the current theme. Re-resolves when
+  * `Theme.signal` changes, and merges with any other style modifier on the element. */
 def themed(f: Theme => Style): Modifier[HtmlElement] =
   StyleLayers.dynamic(Theme.signal.map(f))
