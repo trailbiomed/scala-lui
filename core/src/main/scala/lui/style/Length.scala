@@ -16,10 +16,8 @@ object Length {
   def rem(d: Double): Length = raw(s"${d}rem")
   def em(d: Double): Length = raw(s"${d}em")
 
-  /** Opt-in conversion from a CSS literal, so `TextInput.width := "120px"` compiles in
-    * call sites that carry `import scala.language.implicitConversions`. Without that
-    * import the compiler still demands a `Length`; reach for `Length.px(120)` or
-    * `Length.raw("120px")`. */
+  /** Opt-in conversion from a CSS literal, active only where the call site imports
+    * `scala.language.implicitConversions`. */
   given Conversion[String, Length] = raw(_)
 
   // Extensions for terse internal use (tokens.scala). Hidden inside the object so they

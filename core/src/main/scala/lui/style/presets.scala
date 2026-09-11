@@ -63,9 +63,7 @@ object fg {
   * color goes through `fg` so a parent can override every typo descendant in one shot. */
 object typo {
 
-  /** Small-caps section label. Resolves through `textMuted`, not `textSubtle`: an eyebrow
-    * is structural text, and `textSubtle` is below WCAG AA on a light surface by design —
-    * it is the decoration step of the scale. */
+  /** Small-caps section label. Structural text, so it resolves through `textMuted`. */
   val eyebrow: ThemedStyle = ThemedStyle { t =>
     css.fontSize(fontSizes.xs) ++
       css.fontWeight(FontWeight.Bold) ++
@@ -102,10 +100,9 @@ object typo {
       fg.color(t.textMuted)
   }
 
-  /** Supporting text one step below `muted` — a field's hint, a caveat, a provenance
-    * line. Sized down rather than faded out: it resolves through `textMuted` because
-    * `textSubtle` is below WCAG AA on a light surface, and a hint is text a reader needs.
-    * For genuine decoration, reach for `t.textSubtle` directly. */
+  /** Supporting text one size below `muted` — a field's hint, a caveat, a provenance
+    * line. Sized down rather than faded out, since it still has to be legible; reach for
+    * `t.textSubtle` directly when you mean decoration. */
   val hint: ThemedStyle = ThemedStyle { t =>
     css.fontSize(fontSizes.sm) ++
       fg.color(t.textMuted)

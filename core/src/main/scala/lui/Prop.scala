@@ -33,27 +33,20 @@ final class Out[V, El <: Component](bind: (El, Sink[V]) => Unit) {
     bind(el, sinkB.toObserver.contracollect[V](f))
   )
 
-  /** Pair each event with the current value of `sig`. The usual reason a `Prop.out` has to
-    * be detoured through a local `EventBus`: the handler needs the row, project or
-    * selection the event was fired for, which lives in a signal rather than in the event.
+  /** Pair each event with the value `sig` holds at the moment it fires.
     *
     * {{{
     *   ConfirmDialog.confirm.withCurrentValueOf(selected.signal) -->
     *     Observer[(Unit, Project)] { case (_, p) => delete(p) }
-    * }}}
-    *
-    * The signal is only sampled when an event arrives, so it never has to be current
-    * beforehand. */
+    * }}} */
   def withCurrentValueOf[B](sig: Signal[B]): Out[(V, B), El] =
     compose(_.withCurrentValueOf(sig))
 
-  /** Replace each event with the current value of `sig`, discarding the event itself.
-    * `Button.click.sample(query.signal) --> search.writer` is the common shape. */
+  /** Replace each event with the value `sig` holds at the moment it fires. */
   def sample[B](sig: Signal[B]): Out[B, El] = compose(_.sample(sig))
 
-  /** Feed this output through a stream transformation — debounce, throttle, `distinct`,
-    * anything `EventStream` offers. Lets an `Out` be reshaped where it is declared rather
-    * than routed through a local `EventBus` first. */
+  /** Reshape this output through any `EventStream` operator — `debounce`, `throttle`,
+    * `distinct`. */
   def compose[B](f: EventStream[V] => EventStream[B]): Out[B, El] =
     new Out[B, El]((el, sinkB) => {
       val relay = new EventBus[V]
@@ -92,11 +85,9 @@ final class InOut[V, El <: Component](
   */
 object Prop {
 
-  /** Feeds an external `Source` into `getVar`. Note the asymmetry with `inOut`: this
-    * direction does **not** deduplicate, because a `Source[V]` may deliberately re-emit an
-    * equal value, while `inOut`'s outgoing side is `distinct` so that hand-wiring a
-    * two-way binding cannot loop. Wiring a `Var` into a plain `in` prop and back out again
-    * is therefore the one shape to avoid — use `inOut` with `<-->`. */
+  /** Feeds an external `Source` into `getVar`, without deduplicating — a `Source[V]` may
+    * deliberately re-emit an equal value. [[inOut]]'s outgoing side is `distinct`, so
+    * prefer it with `<-->` over hand-wiring a `Var` through `in` and back out. */
   def in[V, El <: Component](getVar: El => Var[V]): In[V, El] =
     new In[V, El]((el, src) => {
       val _ = el.root.amend(src.toObservable --> getVar(el).writer)

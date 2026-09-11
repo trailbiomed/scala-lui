@@ -1,23 +1,18 @@
 package lui.style
 
-/** WCAG 2.1 contrast arithmetic over `Color`, plus an audit of the pairings lui's own
-  * components draw.
-  *
-  * `lui` owns both halves of every pairing a component makes — the foreground token and
-  * the surface it lands on — so it is the only place a failing pairing can be fixed. The
-  * audit exists so a token change that breaks one is caught here rather than measured
-  * downstream against a hand-transcribed copy of `tokens.scala`. */
+/** WCAG 2.1 contrast arithmetic over [[Color]], plus an audit of the pairings lui's own
+  * components draw. Since lui owns both halves of every such pairing, it is also the only
+  * place a failing one can be fixed. */
 object Contrast {
 
   /** Minimum ratio for body text under WCAG 2.1 AA (1.4.3). */
   val aa: Double = 4.5
 
-  /** Minimum ratio for text at 18.66px bold or 24px regular, and for the visual boundary
-    * of a control (1.4.11). */
+  /** Minimum ratio for text at 18.66px bold or 24px regular (WCAG 2.1 AA 1.4.3), and for
+    * a control's visual boundary (1.4.11). */
   val aaLarge: Double = 3.0
 
-  /** Relative luminance per WCAG 2.1. `c` is flattened onto white first if translucent —
-    * pass an already-composited color to control the backdrop. */
+  /** Relative luminance per WCAG 2.1, flattening a translucent `c` onto white. */
   def luminance(c: Color): Double = {
     val flat = c.over(palette.white)
     def channel(v: Int): Double = {
@@ -28,8 +23,8 @@ object Contrast {
   }
 
   /** Contrast ratio of `fg` drawn on `bg`, from 1.0 (identical) to 21.0 (black on white).
-    * A translucent `fg` is composited onto `bg`; a translucent `bg` should be flattened by
-    * the caller with `Color.over` onto whatever it sits on. */
+    * Composites a translucent `fg` onto `bg`; flatten a translucent `bg` yourself with
+    * [[Color.over]] first. */
   def ratio(fg: Color, bg: Color): Double = {
     val a = luminance(fg.over(bg))
     val b = luminance(bg)
@@ -38,7 +33,7 @@ object Contrast {
     (hi + 0.05) / (lo + 0.05)
   }
 
-  /** One measured pairing. `required` is the threshold that applies to it. */
+  /** One measured pairing, against the threshold that applies to it. */
   final case class Pairing(
       theme: String,
       foreground: String,
@@ -51,11 +46,9 @@ object Contrast {
       f"$theme: $foreground on $background is $measured%.2f:1, needs $required%.1f:1"
   }
 
-  /** Every text pairing lui's components draw, measured against `t`.
-    *
-    * `textSubtle` is deliberately absent: it is the decoration step of the text scale —
-    * separators, out-of-month days, disabled labels — and `typo.hint` / `typo.eyebrow`
-    * resolve through `textMuted` precisely so no preset puts real text at that contrast. */
+  /** Every text pairing lui's components draw, measured against `t`. `textSubtle` is
+    * absent by design: it is the decoration step of the text scale, never a carrier of
+    * text a reader needs. */
   def audit(t: Theme): Seq[Pairing] = {
     val grounds = Seq("bg" -> t.bg, "surface" -> t.surface, "surfaceDim" -> t.surfaceDim)
     def onGrounds(fgName: String, fg: Color): Seq[Pairing] =

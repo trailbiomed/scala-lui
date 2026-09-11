@@ -12,21 +12,17 @@ final class Checkbox private[components] (val root: HtmlElement) extends Compone
   private[components] val indeterminateVar: Var[Boolean] = Var(false)
 }
 
-/** Checkbox. Renders as a `button[role="checkbox"]` so it's keyboard-focusable and
-  * Space/Enter toggle, with `aria-checked` reflecting the state. The visual box and label
-  * sit inside the button.
-  *
-  * `indeterminate := true` is the third, mixed state a "select all" box needs when only
-  * some of its children are checked: the box shows a dash, `aria-checked` reports
-  * `"mixed"`, and activating it resolves to checked, as a native mixed checkbox does. */
+/** Two- or three-state checkbox. Renders as a `button[role="checkbox"]` so it's
+  * keyboard-focusable and Space/Enter toggle, with `aria-checked` reflecting the state.
+  * The visual box and label sit inside the button. */
 object Checkbox extends ComponentFactory[Checkbox] {
 
   val checked = Prop.inOut[Boolean, Checkbox](_.checkedVar)
   val disabled = Prop.in[Boolean, Checkbox](_.disabledVar)
   val label = Prop.in[String, Checkbox](_.labelVar)
 
-  /** Mixed state — neither checked nor unchecked. Takes precedence over `checked` in what
-    * the box draws and reports; activating the checkbox clears it and checks the box. */
+  /** The mixed state a "select all" box needs when only some of its children are checked.
+    * Draws a dash, reports `aria-checked="mixed"`, and outranks `checked`. */
   val indeterminate = Prop.in[Boolean, Checkbox](_.indeterminateVar)
 
   private val boxSize: Length = Length.px(16)
@@ -39,11 +35,11 @@ object Checkbox extends ComponentFactory[Checkbox] {
         css.raw("background", "currentColor")
     )
 
-  /** A mixed checkbox resolves to checked, matching a native `<input>` whose
-    * `indeterminate` flag is set. */
-  private def toggle(el: Checkbox): Unit =
-    if (el.indeterminateVar.now()) el.checkedVar.set(true)
+  private def toggle(el: Checkbox): Unit = {
+    val mixedResolvesToChecked = el.indeterminateVar.now()
+    if (mixedResolvesToChecked) el.checkedVar.set(true)
     else el.checkedVar.update(c => !c)
+  }
 
   override protected def build: Checkbox = {
     val box = span()

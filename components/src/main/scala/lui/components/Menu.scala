@@ -18,10 +18,9 @@ final class Menu private[components] (
   * and restores focus to the trigger. */
 object Menu extends ComponentFactory[Menu] {
 
-  /** `disabled` renders the row muted and inert: it emits nothing, and the arrow keys skip
-    * over it rather than parking focus somewhere Enter does nothing. Use it for a row that
-    * has to stay visible to explain itself — "No tags yet" — instead of relying on a key
-    * that happens to have no handler. */
+  /** @param disabled renders the row muted and inert: it emits nothing, and arrow-key
+    *                  navigation skips over it. For a row that stays visible only to
+    *                  explain itself, such as "No tags yet". */
   final case class Item(
       key: String,
       label: String,
@@ -30,9 +29,7 @@ object Menu extends ComponentFactory[Menu] {
       disabled: Boolean = false
   )
 
-  /** The rows arrow-key navigation and initial focus consider. Disabled rows are excluded
-    * so focus never lands where Enter does nothing. */
-  private val enabledItems = "[role='menuitem']:not([aria-disabled='true'])"
+  private val focusableItemSelector = "[role='menuitem']:not([aria-disabled='true'])"
 
   val items = Prop.in[Seq[Item], Menu](_.itemsVar)
   val select = Prop.out[String, Menu](_.selectBus)
@@ -52,7 +49,7 @@ object Menu extends ComponentFactory[Menu] {
         },
         onKeyDown --> Observer[dom.KeyboardEvent] { ev =>
           val container = popover.bodySlot.ref
-          val items = container.querySelectorAll(enabledItems)
+          val items = container.querySelectorAll(focusableItemSelector)
           if (items.length > 0) {
             val active = dom.document.activeElement
             var idx = -1
@@ -92,7 +89,7 @@ object Menu extends ComponentFactory[Menu] {
     popover.root.amend(
       popover.openVar.signal.changes.filter(identity) --> Observer[Boolean] { _ =>
         val _ = scala.scalajs.js.timers.setTimeout(0) {
-          val items = popover.bodySlot.ref.querySelectorAll(enabledItems)
+          val items = popover.bodySlot.ref.querySelectorAll(focusableItemSelector)
           if (items.length > 0) {
             items.item(0) match {
               case h: dom.HTMLElement => h.focus()

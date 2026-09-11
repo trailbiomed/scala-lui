@@ -73,9 +73,7 @@ object palette {
   // Black with alpha (modal backdrop, shadows etc.)
   val backdrop: Color = Color(15, 23, 42, 0.4)
 
-  /** Every palette stop by name. Lets a consumer enumerate the palette at runtime —
-    * contrast audits, generated documentation, exporting to another toolchain — instead of
-    * transcribing this file. */
+  /** Every stop by name, for enumerating the palette at runtime. */
   val all: Map[String, Color] = Map(
     "teal50" -> teal50,
     "teal100" -> teal100,

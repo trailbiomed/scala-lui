@@ -53,10 +53,6 @@ object Theme {
     text = palette.neutral900,
     textMuted = palette.neutral500,
     textSubtle = palette.neutral400,
-    // teal700, emerald700 and red800 rather than the 600 stops: each pairing below
-    // clears WCAG AA 4.5:1 against the surface it is drawn on, which the 600 stops did
-    // not (white on teal600 is 3.74, emerald600 on emerald50 is 3.58, red600 on red50
-    // is 4.41). See `Contrast`, which gates all of them.
     brand = palette.teal700,
     brandSoft = palette.teal50,
     brandHover = palette.teal800,
@@ -97,8 +93,6 @@ object Theme {
     warning = Color.hex("#fd971f"),
     warningSoft = Color(253, 151, 31, 0.18),
     warningBorder = Color.hex("#b8741a"),
-    // Lighter than Monokai's own #f92672 / #ae81ff: those measure 3.34 and 3.94 against
-    // their own soft fills, below AA. `Contrast` gates both.
     danger = Color.hex("#fb8ab0"),
     dangerSoft = Color(251, 138, 176, 0.18),
     dangerBorder = Color.hex("#b3185a"),
@@ -137,13 +131,12 @@ object Theme {
     infoBorder = palette.blue600
   )
 
-  /** Every semantic token of this theme by name, values as CSS strings. Lets a consumer
-    * enumerate the theme at runtime — contrast audits, generated documentation, exporting
-    * to another toolchain — instead of transcribing `Theme.scala`. */
   extension (t: Theme) {
+
+    /** Every semantic token by name, as a CSS string. */
     def toMap: Map[String, String] = t.colors.view.mapValues(_.toCss).toMap
 
-    /** Every semantic token of this theme by name. */
+    /** Every semantic token by name. */
     def colors: Map[String, Color] = Map(
       "bg" -> t.bg,
       "surface" -> t.surface,

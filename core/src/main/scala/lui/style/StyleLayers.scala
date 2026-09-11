@@ -5,23 +5,14 @@ import com.raquo.laminar.modifiers.Modifier
 import org.scalajs.dom
 import scala.scalajs.js
 
-/** The per-element stack of `Style` contributions.
-  *
-  * Every lui style modifier — a static `Style`, a `ThemedStyle`, `signal.styled`, `themed`
-  * — claims its own layer here instead of writing the whole `style` attribute. Layers are
-  * indexed in the order the modifiers were applied and flushed together, so two styles on
-  * one element compose rather than race, and CSS last-wins still resolves a genuine
-  * conflict in favour of the later modifier.
-  *
-  * Only the properties lui itself declared are ever removed, so an element can still carry
-  * Laminar's own style setters alongside a lui `Style`.
-  *
-  * The stack lives on the DOM node under a private key, so it is found again by every
-  * modifier applied to the same element and collected with the node. */
+/** The stack of `Style` contributions on one element. Each lui style modifier claims a
+  * layer instead of writing the whole `style` attribute, so styles on the same element
+  * compose; later layers win the properties they share. Only properties lui declared are
+  * removed, leaving Laminar's own style setters untouched. */
 private[style] final class StyleLayers(node: dom.HTMLElement) {
 
   private val layers: js.Array[Vector[Decl]] = js.Array()
-  private var owned: Vector[String] = Vector.empty
+  private var luiDeclaredProps: Vector[String] = Vector.empty
 
   def claim(): Int = {
     layers.push(Vector.empty)
@@ -30,16 +21,18 @@ private[style] final class StyleLayers(node: dom.HTMLElement) {
 
   def update(layer: Int, decls: Vector[Decl]): Unit = {
     layers(layer) = decls
-    val merged = layers.toVector.flatten
-    val declared = merged.iterator.map(_.prop).toVector.distinct
-    owned.iterator.filterNot(declared.contains).foreach(node.style.removeProperty)
-    // Clear before setting, so a value the CSSOM rejects leaves the property
-    // absent rather than silently keeping whatever was written last.
-    merged.foreach { d =>
-      node.style.removeProperty(d.prop)
-      node.style.setProperty(d.prop, d.value)
-    }
-    owned = declared
+    val lastWins = layers.toVector.flatten
+    val props = lastWins.iterator.map(_.prop).toVector.distinct
+    val released = luiDeclaredProps.iterator.filterNot(props.contains)
+    released.foreach(node.style.removeProperty)
+    lastWins.foreach(replaceProperty)
+    luiDeclaredProps = props
+  }
+
+  /** Removes before setting, so a value the CSSOM rejects leaves no stale predecessor. */
+  private def replaceProperty(d: Decl): Unit = {
+    val _ = node.style.removeProperty(d.prop)
+    node.style.setProperty(d.prop, d.value)
   }
 }
 
@@ -65,9 +58,9 @@ private[style] object StyleLayers {
     }
   }
 
-  /** Modifier that contributes one layer kept in step with `styles`. The layer is claimed
-    * when the modifier is applied, so its position in the stack follows source order even
-    * though its content arrives on subscription. */
+  /** Modifier contributing one layer kept in step with `styles`. The layer is claimed when
+    * the modifier is applied, so its position follows source order rather than
+    * subscription order. */
   def dynamic(styles: Signal[Style]): Modifier[HtmlElement] = new Modifier[HtmlElement] {
     override def apply(el: HtmlElement): Unit = {
       val stack = of(el)

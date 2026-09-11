@@ -33,10 +33,9 @@ object Textarea extends ComponentFactory[Textarea] {
   val width = Prop.in[Length, Textarea](_.widthVar)
   val resizable = Prop.in[Boolean, Textarea](_.resizableVar)
 
-  /** The field's own border, radius, fill and focus ring. `true` by default. Turn it off to
-    * nest the field inside a surface that already draws those — a composer box, a bordered
-    * cell — instead of dropping to a bare `textArea`. The wrapper then owns the focus
-    * affordance, so none is drawn here. */
+  /** The field's own border, radius, fill and focus ring. `true` by default; turn it off
+    * to nest the field in a surface that already draws those and owns the focus
+    * affordance. */
   val bordered = Prop.in[Boolean, Textarea](_.borderedVar)
 
   override protected def build: Textarea = {

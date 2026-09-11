@@ -32,32 +32,20 @@ object Device {
     v.signal
   }
 
-  /** True while the keyboard is what the user is navigating with — the distinction CSS
-    * calls `:focus-visible`. Components draw focus rings off this (via
-    * `InteractionState.focusVisible`) so a mouse click doesn't ring.
-    *
-    * Any keydown counts except a bare modifier: arrows move focus in a menu, Enter opens
-    * one, Escape closes it, and typing in a field then tabbing out is still keyboard use.
-    * Any pointer press counts the other way, and on *down*, because focus lands on
-    * pointerdown.
-    *
-    * Both listeners are on the capture phase so the mode is settled before any element's
-    * own focus handler runs — a listener that resolves afterwards shows the ring for a
-    * frame. */
+  /** True while the keyboard, rather than the pointer, is what the user is navigating
+    * with. `InteractionState.focusVisible` folds this into focus to get the distinction
+    * CSS calls `:focus-visible`. */
   val keyboardMode: StrictSignal[Boolean] = {
-    val v = Var(false)
-    dom.document.addEventListener(
-      "keydown",
-      (ev: dom.Event) => {
-        val k = ev.asInstanceOf[dom.KeyboardEvent].key
-        if (k != "Shift" && k != "Alt" && k != "Control" && k != "Meta") v.set(true)
-      },
-      useCapture = true
-    )
-    val pointer: js.Function1[dom.Event, Unit] = _ => v.set(false)
-    dom.document.addEventListener("pointerdown", pointer, useCapture = true)
-    dom.document.addEventListener("mousedown", pointer, useCapture = true)
-    v.signal
+    val bareModifiers = Set("Shift", "Alt", "Control", "Meta")
+    val mode = Var(false)
+    val enterKeyboardMode: js.Function1[dom.KeyboardEvent, Unit] =
+      ev => if (!bareModifiers.contains(ev.key)) mode.set(true)
+    val leaveKeyboardMode: js.Function1[dom.Event, Unit] = _ => mode.set(false)
+    val beforeElementFocusHandlers = true
+    dom.document.addEventListener("keydown", enterKeyboardMode, beforeElementFocusHandlers)
+    dom.document.addEventListener("pointerdown", leaveKeyboardMode, beforeElementFocusHandlers)
+    dom.document.addEventListener("mousedown", leaveKeyboardMode, beforeElementFocusHandlers)
+    mode.signal
   }
 
   /** True when the user has requested reduced motion via the OS. Components that animate

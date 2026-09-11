@@ -6,8 +6,8 @@ import lui.style.*
 /** Scrollable container with optional max-height. Uses native scrollbars (inline styling
   * can't customize webkit-scrollbar pseudo-elements).
   *
-  * `bordered = false` drops the border, radius and fill, so the area can sit inside a
-  * surface that already draws its own chrome without producing a box in a box. */
+  * @param bordered the area's own border, radius and fill. Drop them to scroll inside a
+  *                 surface that already draws its own. */
 object ScrollArea {
   def apply(
       maxHeight: Length = Length.px(320),

@@ -6,21 +6,15 @@ import org.scalajs.dom
 
 /** Keyboard-only "skip to main content" link. Hidden until focused.
   *
-  * Activating it moves focus to the target and scrolls there in script rather than letting
-  * the browser follow the fragment — the same shape as `Link.scrollTarget`. Following the
-  * fragment would write `#main` into `location.hash`, which an app that routes on the hash
-  * reads as a route it does not have, landing the reader on a "no such view" page; and even
-  * with a tolerant router the URL would stop describing the view. The `href` is still set
-  * so the keyboard and the status bar see a real target.
-  *
-  * Moving focus is the point, not scrolling: a fragment jump to a non-focusable region
-  * scrolls the page but leaves focus in the navbar, so the next Tab goes straight back into
-  * the nav and the link appears to do nothing. That needs the target to be focusable —
-  * give it `SkipNav.target(id)`, which sets both the id and the `tabindex="-1"` that makes
-  * a region programmatically focusable without adding it to the Tab order. */
+  * Moves focus to the target in script rather than letting the browser follow the
+  * fragment, which a hash-routed app would read as a route it does not have. Mark the
+  * destination with [[SkipNav.target]]: a fragment jump to a region that isn't focusable
+  * scrolls the page but leaves focus behind, so the next Tab returns to the nav and the
+  * link appears to do nothing. */
 object SkipNav {
 
-  /** Mark the region a `SkipNav` points at: sets its `id` and makes it focusable. */
+  /** Marks the region a [[SkipNav]] points at, setting its `id` and making it focusable
+    * without adding it to the Tab order. */
   def target(id: String): Modifier[HtmlElement] =
     new Modifier[HtmlElement] {
       override def apply(el: HtmlElement): Unit = el.amend(idAttr := id, tabIndex := -1)

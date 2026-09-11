@@ -14,11 +14,7 @@ final class CheckboxCard private[components] (
   private[components] val disabledVar: Var[Boolean] = Var(false)
 }
 
-/** A checkbox presented as a clickable card with a title and description.
-  *
-  * `children(...)` adds arbitrary content under the description — a tag row, a metric, a
-  * thumbnail — so the card doesn't have to be rebuilt by hand the first time it needs to
-  * carry more than two lines of text. */
+/** A checkbox presented as a clickable card with a title and description. */
 object CheckboxCard extends ComponentFactory[CheckboxCard] {
 
   val title = Prop.in[String, CheckboxCard](_.titleVar)
